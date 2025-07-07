@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <link id=favicon rel="icon" href="/my-icon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gatos por el Mundo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope&display=swap" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+  <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css'>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.5/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-SgOJa3DmI69IUzQ2PVdRZhwQ+dy64/BUtbMJw1MZ8t5HZApcHrRKUc4W0kG879m7" crossorigin="anonymous">
+  <script type="module" src="/src/main.js"></script>
+  <!-- amCharts 5 core y geodata -->
+  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+  <script src="https://cdn.amcharts.com/lib/5/geodata/worldLow.js"></script>
+</head>
+
+<body>
+  <div id="app"></div>
+
+  <script>
+  const favicon = document.getElementById('favicon');
+
+  function updateFavicon() {
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      // Modo oscuro
+      favicon.href = '/my-icon.ico';
+    } else {
+      // Modo claro
+      favicon.href = '/my-icon-black.ico';
+    }
+  }
+
+  // Ejecutar al cargar la página
+  updateFavicon();
+
+  // Escuchar cambios en el modo
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updateFavicon);
+</script>
+
+</body>
+
+</html>
