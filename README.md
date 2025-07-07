@@ -35,8 +35,6 @@ cp .env.example .env
 php artisan key:generate
 ```
 
----
-
 Configurar .env con tu base de datos y credenciales de Google:
 
 APP_URL=http://localhost:8000
