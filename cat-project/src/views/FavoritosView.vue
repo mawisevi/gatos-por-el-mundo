@@ -4,6 +4,9 @@ import { storeToRefs } from "pinia";
 import { useAuthStore } from '@/store/auth';
 import { useMissingImagesStore } from '@/store/missingImages';
 import { useFixedFacesStore } from '@/store/fixedFaces';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const fixedFaces = useFixedFacesStore();
 
@@ -46,16 +49,16 @@ const getCatImage = (cat) => {
 
     <div class="favorites-container">
         <div class="favorites-header">
-            <h1 class="favorites-title">Mis Favoritos</h1>
+            <h1 class="favorites-title">{{ t('favoritosTitulo')}}</h1>
         </div>
 
             <div v-if="favoritos.length === 0" class="empty-favorites">
                 <div class="empty-state">
                     <img src="../assets/triste.png" alt="Gato triste" class="empty-cat-img">
-                    <h3>No tienes favoritos aún</h3>
-                    <p>¡Empieza a añadir gatitos a tus favoritos!</p>
+                    <h3>{{ t('nofavoritos')}}</h3>
+                    <p>{{ t('textoFavoritos')}}</p>
                     <router-link to="/gatos" class="btn btn-primary explore-btn">
-                        Explorar gatitos
+                        {{ t('explorarGatitos') }}
                     </router-link>
                 </div>
             </div>
@@ -74,13 +77,13 @@ const getCatImage = (cat) => {
                                         :to="`/gatos/${cat.name}`"
                                         class="btn btn-info btn-sm action-btn info"
                                         >
-                                        <i class="fas fa-info-circle"></i> Más info
+                                        <i class="fas fa-info-circle"></i>{{ t('info')}}
                                     </router-link>
                                     <button
                                         @click="remove(cat.id)"
                                         class="btn btn-danger btn-sm action-btn danger"
                                         >
-                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                        <i class="fas fa-trash-alt"></i>{{ t('eliminar')}}
                                     </button>
                                 </div>
                     </div>

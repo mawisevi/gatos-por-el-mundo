@@ -88,7 +88,15 @@ const messages = {
     errorcerrarsesion: 'Ocurrió un error al cerrar la sesión',
     credenciales: 'Credenciales incorrectas',
     errorservidor: 'Error del servidor. Intenta más tarde',
-
+    favoritosTitulo: 'Mis Favoritos',
+    info: "Más info",
+    eliminar: 'Eliminar',
+    nofavoritos: 'No tienes favoritos aún',
+    textoFavoritos: '¡Empieza a añadir gatitos a tus favoritos!',
+    explorarGatitos: 'Explorar gatitos',
+    perfil: 'Perfil de Usuario',
+    nombrePerfil: 'Nombre:',
+    correoPerfil: 'Correo:',
   },
   en: {
     gatosporelmundo: 'Cats around the World',
@@ -176,6 +184,15 @@ const messages = {
     errorcerrarsesion: 'An error occurred while logging out.',
     credenciales: 'Incorrect credentials',
     errorservidor: 'Server error. Please try again later.',
+    favoritosTitulo: 'My Favorites',
+    info: "More info",
+    eliminar: 'Delete',
+    nofavoritos: "You don't have favorites yet",
+    textoFavoritos: 'Start adding cats to your favorites!',
+    explorarGatitos: 'Explore cat breeds',
+    perfil: 'User Profile',
+    nombrePerfil: 'Name:',
+    correoPerfil: 'Email:',
   }
 }
 

@@ -1,23 +1,23 @@
 <template>
   <div class="profile-container">
-    <h1>Perfil del Usuario</h1>
+    <h1>{{ t('perfil')}}</h1>
 
     <div v-if="auth.user">
-      <p><strong>Nombre:</strong> {{ auth.user.name }}</p>
-      <p><strong>Correo:</strong> {{ auth.user.email }}</p>
+      <p><strong>{{ t('nombrePerfil') }}</strong> {{ auth.user.name }}</p>
+      <p><strong>{{ t('correoPerfil') }}</strong> {{ auth.user.email }}</p>
 
       <div v-if="auth.user.avatar">
         <img :src="auth.user.avatar" alt="Avatar de usuario" class="avatar" />
       </div>
-    </div>
-    <div v-else>
-      <p>No hay usuario logueado.</p>
     </div>
   </div>
 </template>
 
 <script setup>
 import { useAuthStore } from '@/store/auth'
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const auth = useAuthStore()
 </script>
