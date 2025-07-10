@@ -2,10 +2,27 @@
 
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
-import { onMounted, watch } from 'vue';
 import Footer from '@/components/Footer.vue';
 import { useToast } from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
+import { useI18n } from 'vue-i18n'
+
+// Lo comentado es para volver a regenerar el archivo breeds-es.json una vez eliminado
+
+// import { useGetData } from '@/composables/getData';
+// import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
+
+// const { getData, data } = useGetData();
+// const { saveBreeds } = useGetTranslatedBreeds();
+
+// onMounted(async () => {
+//   await getData('/breeds'); 
+//   if (data.value && Array.isArray(data.value)) {
+//     await saveBreeds(data.value);
+//   } else {
+//     console.warn("No se han cargado las razas correctamente");
+//   }
+// });
 
 const route = useRoute();
 const router = useRouter();
@@ -17,66 +34,55 @@ const toast = useToast();
 async function logout() {
   try {
     await auth.logout();
-    toast.success('Sesión cerrada con éxito');
+    toast.success(t('sesioncerrada'));
     router.push({ name: 'home' });
   } catch (error) {
     console.error('Error al cerrar sesión:', error);
-    toast.error('Ocurrió un error al cerrar la sesión');
+    toast.error(t('errorcerrarsesion'));
   }
 }
 
-onMounted(() => {
-  initTooltips();
 
+
+const { t, locale } = useI18n()
+
+
+function cambiarIdioma() {
+  locale.value = locale.value === 'es' ? 'en' : 'es'
+  localStorage.setItem('idioma', locale.value)
   
-});
-
-watch(() => auth.isLoggedIn, () => {
-  initTooltips();
-});
-
-async function initTooltips() {
-  const bootstrap = await import('bootstrap');
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-    if (el._tooltipInstance) {
-      el._tooltipInstance.dispose();
-    }
-    el._tooltipInstance = new bootstrap.Tooltip(el);
-    el.addEventListener('mouseleave', () => {
-      el._tooltipInstance.hide();
-    });
-
-    el.addEventListener('click', () => {
-      el._tooltipInstance.hide();
-    });
-  });
 }
-
 
 </script>
 
 <template>
 
-
+<div class="page-wrapper">
   <!-- Navbar -->
   <nav v-if="!route.meta.hideNavbar" class="navbar">
     <div class="container-fluid d-flex justify-content-between align-items-center">
       <router-link class="navbar-brand text-white" to="/">
         <img alt="Vue logo" src="@/assets/refugio-de-animales.png" width="30" height="24"
           class="d-inline-block align-text-top" />
-        Gatos por el Mundo
+
+        {{ $t('gatosporelmundo') }}
+
       </router-link>
       <div v-if="auth.isLoggedIn" class="d-flex align-items-center justify-content-center">
 
-        <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Home" style="cursor:pointer;" to="/">
+        <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
+           v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
+
+          <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" style="margin-top: 1px;" class="icon-default" />
+          <img v-else alt="EN" src="@/assets/en.png" width="50" style="margin-top: 1px;"  />
+        </button>
+
+        <router-link active-class="active" class="icon-container" v-tooltip="t('home')" style="cursor:pointer;" to="/">
           <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
           <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
         </router-link>
 
-        <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Razas" style="cursor:pointer; text-decoration: none;"
-          to="/gatos">
+        <router-link active-class="active" class="icon-container" v-tooltip="t('razas')" style="cursor:pointer; text-decoration: none;" to="/gatos">
           <!-- Icono normal (visible por defecto) -->
           <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
 
@@ -84,38 +90,44 @@ async function initTooltips() {
           <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
         </router-link>
 
-        <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Favoritos" style="cursor:pointer;" to="/favoritos">
+        <router-link active-class="active" class="icon-container"  v-tooltip="t('favoritos')" style="cursor:pointer;" to="/favoritos">
           <i class="bi bi-heart icon-hover fs-3 icon-default" style="margin-top: 3px;"></i>
-          <i class="bi bi-heart-fill icon-hover fs-3 icon-active" ></i>
+          <i class="bi bi-heart-fill icon-hover fs-3 icon-active"></i>
         </router-link>
 
-        <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Perfil" style="cursor:pointer;" to="/perfil">
+        <router-link active-class="active" class="icon-container"  v-tooltip="t('perfil')" style="cursor:pointer;" to="/perfil">
           <i class="bi bi-person icon-hover fs-3 icon-default" style="margin-top: 0px;"></i>
-          <i class="bi bi-person-fill icon-hover fs-3 icon-active" ></i>
+          <i class="bi bi-person-fill icon-hover fs-3 icon-active"></i>
         </router-link>
 
 
-        <button @click="logout" class="btn btn-link p-0 border-0 icon-container custom-btn" data-bs-toggle="tooltip"
-          data-bs-placement="bottom" title="Cerrar Sesión" style="cursor:pointer;">
+        <button @click="logout" class="btn btn-link p-0 border-0 icon-container custom-btn"  v-tooltip="t('cerrarsesion')" style="cursor:pointer;">
           <i class="bi bi-box-arrow-right fs-2 icon-hover"></i>
         </button>
-        
+
       </div>
 
       <div v-else class="d-flex align-items-center justify-content-center">
-         <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Razas" style="cursor:pointer; text-decoration: none;"
-          to="/gatos">
+        <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
+           v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
+
+          <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" style="margin-top: 1px;" class="icon-default" />
+          <img v-else alt="EN" src="@/assets/en.png" width="50" style="margin-top: 1px;"  />
+        </button>
+
+        <router-link active-class="active" class="icon-container"  v-tooltip="t('home')" style="cursor:pointer;" to="/">
+          <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
+          <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
+        </router-link>
+
+        <router-link active-class="active" class="icon-container"  v-tooltip="t('razas')" style="cursor:pointer; text-decoration: none;" to="/gatos">
           <!-- Icono normal (visible por defecto) -->
           <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
 
           <!-- Icono activo (oculto por defecto) -->
           <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
         </router-link>
-        <router-link active-class="active" class="icon-container" data-bs-toggle="tooltip" data-bs-placement="bottom"
-          title="Iniciar sesión" style="cursor:pointer;" to="/login">
+        <router-link active-class="active" class="icon-container"  v-tooltip="t('iniciarsesion')" style="cursor:pointer;" to="/login">
           <i class="bi bi-door-open fs-3 icon-hover"></i>
         </router-link>
       </div>
@@ -124,13 +136,13 @@ async function initTooltips() {
 
 
   <!-- Contenido principal -->
-  <div :class="route.meta.fullPage ? '' : 'container'">
-    <RouterView :key="route.fullPath"/>
-  </div>
+  <main :class="route.meta.fullPage ? '' : 'container'">
+    <RouterView :key="route.fullPath" />
+  </main>
 
   <Footer v-if="!route.meta.hideFooter"></Footer>
 
-
+</div>
 </template>
 
 <style scope>
@@ -145,13 +157,31 @@ body {
   /* Evita scroll horizontal */
 }
 
+
+.page-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; /* Ocupa al menos toda la altura de la ventana */
+}
+
+
 .navbar {
-  background-color: #864ec4;
+  background-color: #7444ab;
+}
+
+main {
+  flex: 1; /* Hace que el contenido principal ocupe todo el espacio disponible */
 }
 
 a {
   color: white !important;
 
+}
+
+
+
+main {
+  flex: 1; /* Esto empuja el footer al fondo */
 }
 
 .custom-btn {

@@ -1,31 +1,37 @@
 <template>
     <div class="gradient">
         <div class="container">
+            <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
+                v-tooltip="t('cambiarIdioma')" style="cursor:pointer; position:absolute; top: 11rem; z-index: 10;">
+
+                <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" />
+                <img v-else alt="EN" src="@/assets/en.png" width="50" />
+            </button>
             <div id="cat-silhouette">
                 <form id="login-form" @submit.prevent="handleLogin">
-                    <h2>Iniciar Sesión</h2>
-                    <input type="email" placeholder="Correo electrónico" v-model="email" />
-                    <input type="password" placeholder="Contraseña" v-model="password" />
+                    <h2>{{ t('iniciarsesion') }}</h2>
+                    <input type="email" :placeholder="t('correoelectronico')" v-model="email" />
+                    <input type="password" :placeholder="t('contraseña')" v-model="password" />
                     <div class="forgot-password" id="contrañesa-olvidada">
-                        <a href="#">¿Ha olvidado la contraseña?</a>
+                        <a href="#">{{ t('contraseñaOlvidada') }}</a>
                     </div>
 
-                    <button type="submit" :disabled="loading">
+                    <button type="submit" :disabled="formDisabled">
                         <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"
                             aria-hidden="true"></span>
-                        Entrar
+                        {{ t('entrar') }}
                     </button>
 
-                    <button type="button" @click="loginWithGoogle" class="btn-google">
+                    <button type="button" @click="loginWithGoogle" class="btn-google-login">
                         <img src="@/assets/google-icon.png" alt="Google icon" class="google-icon" />
-                        Iniciar sesión con Google
+                        {{ t('iniciarsesionGoogle') }}
                     </button>
 
 
                 </form>
                 <div id="register">
-                    <p>¿Eres nuevo?</p>
-                    <button id="btn-circle" type="submit" @click="irARegistro">Crear cuenta</button>
+                    <p>{{ t('nuevo') }}</p>
+                    <button id="btn-circle-login" type="submit" @click="irARegistro">{{ t('crearcuenta') }}</button>
                 </div>
             </div>
         </div>
@@ -37,7 +43,9 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/store/auth';
 import { useToast } from 'vue-toastification';
+import { useI18n } from 'vue-i18n';
 
+const { t, locale } = useI18n();
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -47,6 +55,13 @@ const toast = useToast();
 const email = ref('');
 const password = ref('');
 const loading = ref(false);
+const formDisabled = ref(false);
+
+function cambiarIdioma() {
+    locale.value = locale.value === 'es' ? 'en' : 'es'
+    localStorage.setItem('idioma', locale.value)
+
+}
 
 function irARegistro() {
     router.push({ name: 'register' })
@@ -54,12 +69,13 @@ function irARegistro() {
 
 
 function loginWithGoogle() {
-  window.location.href = 'http://127.0.0.1:8000/login-google';
+    window.location.href = 'http://127.0.0.1:8000/login-google';
 }
 
 
 async function handleLogin() {
     loading.value = true;
+    formDisabled.value = true;
     try {
         await auth.login(email.value, password.value);
 
@@ -67,19 +83,18 @@ async function handleLogin() {
     } catch (e) {
         if (e.response) {
             if (e.response.status === 401) {
-                toast.error('Credenciales incorrectas', {
+                toast.error(t('credenciales'), {
                     position: 'top-center', toastClassName: 'custom-toast-login',
                     bodyClassName: ['custom-toast-body-login'],
                 });
             } else {
-                toast.error('Error del servidor. Intenta más tarde.');
+                toast.error(t('errorservidor'));
             }
-        } else {
-            // Error sin respuesta, podría ser un problema de red u otro tipo
-            toast.error('Error de conexión. Intenta más tarde.');
         }
     } finally {
         loading.value = false;
+        formDisabled.value = true;
+
     }
 }
 </script>
@@ -138,7 +153,7 @@ async function handleLogin() {
 }
 
 /* ICONO GOOGLE y botón*/
-.btn-google {
+.btn-google-login {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -153,7 +168,7 @@ async function handleLogin() {
     transition: background-color 0.2s ease;
 }
 
-.btn-google:hover {
+.btn-google-login:hover {
     background-color: #e548a9 !important;
     color: white !important;
 }
@@ -167,7 +182,7 @@ async function handleLogin() {
 #contrañesa-olvidada {
     width: 80%;
     text-align: right;
-    font-size: clamp(10px, 1.5vw, 16px);
+    font-size: 16px;
 
 }
 
@@ -184,6 +199,10 @@ async function handleLogin() {
 .container {
     display: flex;
     justify-content: center;
+    flex-direction: column;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
 }
 
 
@@ -192,7 +211,7 @@ async function handleLogin() {
 #cat-silhouette {
     position: relative;
 
-    width: clamp(200px, 300vw, 700px);
+    width: 700px;
     height: auto;
     aspect-ratio: 4 / 5;
     margin: 0 auto;
@@ -218,48 +237,54 @@ async function handleLogin() {
 
 #register p {
     margin-bottom: clamp(1px, 1.0vw, 6px);
-    font-size: clamp(12px, 1.9vw, 17px);
+    font-size: 17px;
     font-weight: bold;
     color: #2d1441;
 }
 
-#btn-circle {
+#btn-circle-login {
     aspect-ratio: 1 / 1;
     /* mantiene forma cuadrada (círculo con border-radius) */
-    width: clamp(40px, 15%, 100px);
+    width: 88px;
     /* 30% del contenedor, con límites mínimo y máximo */
 
     border-radius: 50%;
     background-color: #d58f16;
     color: white;
     border: none;
-    font-size: clamp(9px, 2vw, 18px);
+    font-size: 18px;
     cursor: pointer;
     transition: background-color 0.3s ease;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    transform: translateX(286%);
 }
 
-#btn-circle:hover {
+#btn-circle-login:hover {
     background-color: #65440b;
 }
 
 /* Formulario centrado dentro de la silueta */
 #login-form {
-    width: clamp(180px, 50%, 400px);
+    width: 350px;
     /* o ajusta según el espacio dentro de la silueta */
     /* 60% del ancho de la ventana */
 
     display: flex;
     flex-direction: column;
-    gap: clamp(6px, 1.5vw, 11px);
+    gap: 11px;
     /* más fluido para pantallas pequeñas */
     align-items: center;
     box-sizing: border-box;
-
+    margin-bottom: 5px;
 }
 
 
 #login-form h2 {
-    font-size: clamp(20px, 3vw, 35px);
+    font-size: 35px;
     margin-bottom: 0.2rem;
     text-align: center;
     color: #9570b4;
@@ -271,7 +296,7 @@ async function handleLogin() {
 #login-form button {
     width: 78%;
     border-radius: 25px;
-    font-size: clamp(10px, 1.5vw, 17px);
+    font-size: 17px;
     /* escala entre 14 y 18px */
     padding: 0.6em 1em;
     box-sizing: border-box;
@@ -296,13 +321,5 @@ async function handleLogin() {
 
 #login-form button:hover {
     background-color: #e548a9;
-}
-
-@media (max-width: 570px) {
-    #cat-silhouette {
-        min-width: 485px;
-        background-position: center center;
-        /* mueve 100px desde la izquierda, vertical centro */
-    }
 }
 </style>

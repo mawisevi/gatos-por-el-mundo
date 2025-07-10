@@ -3,6 +3,8 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BreedController;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,7 +28,16 @@ Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
     return response()->json(['message' => 'Logged out']);
 });
 
+Route::post('/guardar-razas', [BreedController::class, 'guardarRazas']);
 
+Route::get('/razas-es', function () {
+    if (!Storage::disk('public')->exists('breeds-es.json')) {
+        return response()->json(['error' => 'Archivo no encontrado'], 404);
+    }
+    
+    $json = Storage::disk('public')->get('breeds-es.json');
+    return response()->json(json_decode($json));
+});
 
 
 

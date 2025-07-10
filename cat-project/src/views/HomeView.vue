@@ -18,15 +18,16 @@
                     {{ continent.name }}
                     <span v-show="hoveredContinent === continent.id || activeContinent === continent.id"
                         class="count-badge float-end">
-                        {{ continentCounts[continent.id] ?? 'Cargando...' }} gatos
+                        {{ continentCounts[continent.id] ?? 'Cargando...' }} {{ (continentCounts[continent.id] === 1) ?
+                            t('gato') : t('gatos') }}
                     </span>
                 </button>
             </div>
 
             <div id="cats-list">
-                <h2 class="text-center my-3 texto">{{ activeContinent ? `Ranking de
-                    ${getContinentName(activeContinent)}` :
-                    'Ranking del mundo' }}</h2>
+                <h2 class="text-center my-3 texto">{{ activeContinent ?
+                    $t('rankingDeContinente', { continente: getContinentName(activeContinent) }) :
+                    $t('rankingDelMundo') }}</h2>
 
                 <div class="ranking-container">
                     <!-- Wrapper que se mueve -->
@@ -43,7 +44,7 @@
 
                             </div>
                             <div v-else class="no-cats-message text-center p-3">
-                                No hay razas de gatos en este continente
+                                {{ t('razasContinente')}}
                             </div>
                         </div>
                     </div>
@@ -56,7 +57,7 @@
                                 :prop="selectedRanking.type" :isLifeSpan="isLifeSpan" :isWeight="isWeight" />
                             <button :style="{ display: showNoCatsMessage ? 'none' : 'inline-block' }"
                                 @click="startReturn" class="volver-boton">
-                                Volver
+                                {{t('volver')}}
                             </button>
                         </div>
                     </transition>
@@ -72,19 +73,17 @@
 
 
 
-
-
-
 </template>
 
 <script setup>
 import WorldMap from "@/components/WorldMap.vue";
 import CatCarrusel from "@/components/CatCarrusel.vue";
-import { ref, onMounted, computed, nextTick, watch } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useGetData } from '@/composables/getData';
 import continentCountries from '@/store/continentCountries';
 import RankingList from '@/components/RankingList.vue';
 import { useMissingImagesStore } from '@/store/missingImages';
+import { useI18n } from 'vue-i18n'
 
 
 // Ref para controlar el mapa desde el padre
@@ -92,16 +91,17 @@ const worldMapRef = ref(null);
 
 const missingImages = useMissingImagesStore();
 
+const { t } = useI18n()
 
 // Datos reactivos
 const cats = ref([]);
-const continents = ref([
-    { id: 'europe', name: 'Europa' },
-    { id: 'asia', name: 'Asia' },
-    { id: 'africa', name: 'África' },
-    { id: 'northAmerica', name: 'América del Norte' },
-    { id: 'southAmerica', name: 'América del Sur' },
-    { id: 'oceania', name: 'Oceanía' }
+const continents = computed(() => [
+    { id: 'europe', name: t('europa') },
+    { id: 'asia', name: t('asia') },
+    { id: 'africa', name: t('africa') },
+    { id: 'northAmerica', name: t('americanorte') },
+    { id: 'southAmerica', name: t('americasur') },
+    { id: 'oceania', name: t('oceania') }
 ]);
 
 const activeContinent = ref(null);
@@ -126,17 +126,17 @@ const wrapperStyle = computed(() => {
 const { getData, data, error: err, loading: load } = useGetData();
 
 
-const rankings = [
-    { type: 'affection_level', label: 'Más Cariñosos' },
-    { type: 'life_span', label: 'Más Longevos' },
-    { type: 'intelligence', label: 'Más Inteligentes' },
-    { type: 'social_needs', label: 'Más Sociables' },
-    { type: 'energy_level', label: 'Más Energéticos' },
-    { type: 'weight_kg', label: 'Más Pesados (kg)' },
-    { type: 'vocalisation', label: 'Más Hablador' },
-    { type: 'child_friendly', label: 'Más Amigable con Niños' },
-    { type: 'dog_friendly', label: 'Más Amigable con Perros' },
-];
+const rankings = computed(() => [
+    { type: 'affection_level', label: t('cariñosos') },
+    { type: 'life_span', label: t('longevos') },
+    { type: 'intelligence', label: t('inteligentes') },
+    { type: 'social_needs', label: t('sociables') },
+    { type: 'energy_level', label: t('energéticos') },
+    { type: 'weight_kg', label: t('pesados') },
+    { type: 'vocalisation', label: t('habladores') },
+    { type: 'child_friendly', label: t('amigablesniños') },
+    { type: 'dog_friendly', label: t('amigablesperros') },
+]);
 
 
 

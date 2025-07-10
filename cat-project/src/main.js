@@ -10,7 +10,10 @@ import 'bootstrap'
 import '@/assets/styles/global.css'
 import '@flaticon/flaticon-uicons/css/all/all.css';
 import Toast,  { POSITION } from 'vue-toastification';
-import GoogleSignInPlugin from "vue3-google-signin"
+import GoogleSignInPlugin from "vue3-google-signin";
+import FloatingVue from 'floating-vue'
+import 'floating-vue/dist/style.css'
+import i18n from './i18n';
 
 
 
@@ -37,7 +40,10 @@ app.use(Toast, {
 app.use(router)
 
 app.use(pinia)
+app.use(FloatingVue)
+app.use(i18n)
 app.mount('#app')
+
 
 // Restaura sesión al iniciar
 import { useAuthStore } from '@/store/auth';

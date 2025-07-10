@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import { onMounted } from "vue";
+import { onMounted, ref, watch, computed } from "vue";
 import { useRouter } from 'vue-router';
 import * as am5 from "@amcharts/amcharts5";
 import * as am5map from "@amcharts/amcharts5/map";
@@ -17,18 +17,24 @@ import countryCoordinates from "@/store/countryCoordinates";
 import continentCountries from "@/store/continentCountries";
 import fixedPoints from "@/store/fixedPoints";
 import { useMissingImagesStore } from "@/store/missingImages";
+import { useI18n } from 'vue-i18n';
+import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
+
+const { t, locale } = useI18n();
+
+
 
 const missingImages = useMissingImagesStore();
 
 const getCatImage = (breed) => {
-  if (!breed) return null;
+    if (!breed) return null;
 
-  const breedId = breed.id.toLowerCase(); // Normaliza a minúsculas
-  const overrideImage = missingImages.getImage(breedId);
+    const breedId = breed.id.toLowerCase(); // Normaliza a minúsculas
+    const overrideImage = missingImages.getImage(breedId);
 
 
-  // Si hay imagen override, úsala; si no, usa la imagen por defecto
-  return overrideImage || `https://cdn2.thecatapi.com/images/${breed.reference_image_id}.jpg`;
+    // Si hay imagen override, úsala; si no, usa la imagen por defecto
+    return overrideImage || `https://cdn2.thecatapi.com/images/${breed.reference_image_id}.jpg`;
 };
 
 
@@ -41,8 +47,6 @@ let zoomControl;
 let currentContinent = null;
 
 const emit = defineEmits(['continent-selected', 'reset']); //para que muestre los rankings
-
-
 
 
 // 1. Definimos la función fuera de onMounted pero que usa las variables let
@@ -77,7 +81,7 @@ const showContinentData = (continentId, color = am5.color(0x53a785)) => {
     zoomControl.homeButton.set("visible", true);
 
     // Filtrar y preparar puntos
-    const filteredPoints = allPoints.filter(p =>
+    const filteredPoints = allPoints.value.filter(p =>
         continentCountries[continentId].includes(p.country)
     );
 
@@ -142,57 +146,53 @@ const showContinentData = (continentId, color = am5.color(0x53a785)) => {
 
 const goHome = () => {
 
+    chart.set("homeGeoPoint", { longitude: 10, latitude: 45 });
+    chart.set("homeZoomLevel", 1);
 
+    chart.goHome();
 
-        chart.set("homeGeoPoint", { longitude: 10, latitude: 45 });
-        chart.set("homeZoomLevel", 1);
+    // Mostrar la serie de continentes (si estaba oculta)
+    if (series.isHidden()) {
+        series.show();
+    }
 
-        chart.goHome();
+    // Eliminar/ocultar series de países si existen
+    if (countrySeries) {
+        chart.series.removeValue(countrySeries);
+        countrySeries.dispose();
+        countrySeries = null;
+    }
 
-        // Mostrar la serie de continentes (si estaba oculta)
-        if (series.isHidden()) {
-            series.show();
+    // Borrar puntos y ocultar pointSeries
+    if (pointSeries) {
+        pointSeries.setAll([]);
+        pointSeries.set("visible", false);
+
+        if (pointSeries.get("tooltip")) {
+            pointSeries.get("tooltip").hide(0);
         }
+    }
 
-        // Eliminar/ocultar series de países si existen
-        if (countrySeries) {
-            chart.series.removeValue(countrySeries);
-            countrySeries.dispose();
-            countrySeries = null;
-        }
+    // Reactiva tooltip base
+    series.mapPolygons.template.setAll({
+        tooltipText: "{name}",
+        interactive: true,
+        tooltip: am5.Tooltip.new(root, {}),
+    });
+    series.mapPolygons.template.get("tooltip").hide(0);
 
-        // Borrar puntos y ocultar pointSeries
-        if (pointSeries) {
-            pointSeries.setAll([]);
-            pointSeries.set("visible", false);
+    // Opcional: ocultar el zoomControl y el botón Home si quieres
+    zoomControl.set("visible", false);
+    zoomControl.homeButton.set("visible", false);
 
-            if (pointSeries.get("tooltip")) {
-                pointSeries.get("tooltip").hide(0);
-            }
-        }
+    currentContinent = null;
+    emit('reset');
 
-        // Reactiva tooltip base
-        series.mapPolygons.template.setAll({
-            tooltipText: "{name}",
-            interactive: true,
-            tooltip: am5.Tooltip.new(root, {}),
-        });
-        series.mapPolygons.template.get("tooltip").hide(0);
-
-        // Opcional: ocultar el zoomControl y el botón Home si quieres
-        zoomControl.set("visible", false);
-        zoomControl.homeButton.set("visible", false);
-
-        currentContinent = null;
-        emit('reset');
- 
 };
-
 
 
 // 2. Exponemos la función usando window (alternativa a defineExpose)
 window._mapAPI = { showContinentData, goHome };
-
 
 
 
@@ -202,35 +202,39 @@ async function fetchBreeds() {
     return data;
 }
 
-let allPoints = [];
+let allPoints = ref([]);
 
 
+const loadPoints = async () => {
+    let breeds = [];
 
-onMounted(async () => {
-    //await nextTick(); // Espera a que el DOM esté completamente listo
+    if (locale.value === 'es') {
+        const { getTranslatedBreeds } = useGetTranslatedBreeds();
+        const data = await getTranslatedBreeds();
+        if (Array.isArray(data)) {
+            breeds = data;
+        }
+    } else {
+        breeds = await fetchBreeds();
+    }
 
-    const breeds = await fetchBreeds();
+    // Mapeamos a puntos
+    const points = breeds.map((breed) => {
+        let code = breed.country_code || breed.country_codes;
 
-    const points = breeds.map(breed => {
-        let code = breed.country_code || breed.country_codes; // Ej: "TR"
+        if (code === "SP") code = "SG"; // Corrección
 
-        // Corrección manual de errores comunes
-        if (code === "SP") code = "SG"; // Singapore
-
-        const countryName = breed.origin; // Ej: "Turkey"
+        const countryName = breed.origin;
         if (code && countryCoordinates[code]) {
             const coords = countryCoordinates[code];
-            // Añadir desplazamiento pequeño para que no queden apilados
-            const lat = coords.latitude;
-            const lon = coords.longitude;
             return {
                 id: breed.id,
                 image: getCatImage(breed),
-                latitude: lat,
-                longitude: lon,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
                 name: breed.name,
-                country: code,       // Aquí el código ISO, para filtrar
-                countryName: countryName,  // Para mostrar el nombre
+                country: code,
+                countryName: countryName,
             };
         } else {
             console.warn("País sin coordenadas:", code);
@@ -238,9 +242,30 @@ onMounted(async () => {
         }
     }).filter(Boolean);
 
-    allPoints = points;
+    allPoints.value = points;
 
-    console.log('Points a mostrar:', allPoints.length);
+
+};
+
+const getTooltipHTML = (data) => {
+    if (!data) return '';
+    return `
+          <div style="text-align:center;">
+            <strong>${data.name}</strong><br />
+            <img src="${data.image}" alt="${data.name}" width="100"/><br />
+            ${t('origen')}: ${data.countryName}
+          </div>
+        `;
+};
+
+
+onMounted(async () => {
+
+    await loadPoints();
+
+
+    console.log('Points a mostrar:', allPoints.value.length);
+
 
     // Crear raíz
     root = am5.Root.new("mapdiv");
@@ -292,13 +317,20 @@ onMounted(async () => {
         console.log("Latitud:", geoPoint.latitude, "Longitud:", geoPoint.longitude);
     });
 
-    // Configurar tooltip e interacción
     series.mapPolygons.template.setAll({
-        tooltipText: "{name}",
         interactive: true,
         templateField: "polygonSettings",
-        tooltip: am5.Tooltip.new(root, {})  // crea o reinicia tooltip
+        tooltip: am5.Tooltip.new(root, {})
     });
+
+    series.mapPolygons.template.adapters.add("tooltipText", (text, target) => {
+        const id = target.dataItem?.dataContext?.id;
+        if (!id) return "";
+        // Buscar el nombre traducido del continente según el id
+        const continent = getTranslatedContinents.value.find(c => c.id === id);
+        return continent ? continent.name : "";
+    });
+
 
     // Hover color
     series.mapPolygons.template.states.create("hover", {
@@ -306,14 +338,19 @@ onMounted(async () => {
     });
 
     // Colores de continentes
-    series.data.setAll([
-        { id: "asia", polygonSettings: { fill: am5.color(0x9E78D2) } },
-        { id: "africa", polygonSettings: { fill: am5.color(0xC042A2) } },
-        { id: "northAmerica", polygonSettings: { fill: am5.color(0x864EC4) } },
-        { id: "southAmerica", polygonSettings: { fill: am5.color(0xd071d5) } },
-        { id: "europe", polygonSettings: { fill: am5.color(0xB796DC) } },
-        { id: "oceania", polygonSettings: { fill: am5.color(0xC68D54) } },
+    const getTranslatedContinents = computed(() => [
+
+        { id: "asia", name: t('asia'), polygonSettings: { fill: am5.color(0x9E78D2) } },
+        { id: "africa", name: t('africa'), polygonSettings: { fill: am5.color(0xC042A2) } },
+        { id: "northAmerica", name: t('americanorte'), polygonSettings: { fill: am5.color(0x864EC4) } },
+        { id: "southAmerica", name: t('americasur'), polygonSettings: { fill: am5.color(0xd071d5) } },
+        { id: "europe", name: t('europa'), polygonSettings: { fill: am5.color(0xB796DC) } },
+        { id: "oceania", name: t('oceania'), polygonSettings: { fill: am5.color(0xC68D54) } }
+
     ]);
+
+    series.data.setAll(getTranslatedContinents.value);
+
 
 
     pointSeries = chart.series.push(am5map.MapPointSeries.new(root, {
@@ -321,7 +358,10 @@ onMounted(async () => {
         longitudeField: "longitude",
     }));
 
-    pointSeries.bullets.push((root) => {
+
+
+    pointSeries.bullets.push((root, dataItem) => {
+
 
         const circle = am5.Circle.new(root, {
 
@@ -329,13 +369,7 @@ onMounted(async () => {
             fill: am5.color(0xffffff),
             stroke: am5.color(0x000000),
             strokeWidth: 1.5,
-            tooltipHTML: `
-      <div style="text-align:center;">
-        <strong>{name}</strong><br />
-        <img src="{image}" alt="{name}" width="100"/><br />
-        Origen: {countryName}
-      </div>
-    `,
+
             opacity: 0,
             cursorOverStyle: "pointer",
             tooltipPosition: "pointer",
@@ -351,6 +385,14 @@ onMounted(async () => {
         });
 
         circle.set("tooltip", tooltip);
+
+
+
+        // Usamos un adaptador para que el contenido del tooltip sea dinámico según el dataItem y traducción
+        circle.adapters.add("tooltipHTML", (html, target) => {
+            const data = target.dataItem?.dataContext;
+            return getTooltipHTML(data);
+        });
 
 
         circle.events.on("click", (ev) => {
@@ -400,6 +442,27 @@ onMounted(async () => {
 
 
 });
+
+
+
+
+
+watch(locale, async () => {
+
+    await loadPoints();
+    allPoints.value.forEach(point => {
+        const dataItem = pointSeries.dataItems.find(di => di.dataContext.id === point.id);
+        if (dataItem) {
+            dataItem.dataContext.countryName = point.countryName;
+            dataItem.set("tooltipHTML", getTooltipHTML(point));
+        }
+    });
+
+
+});
+
+
+
 
 </script>
 

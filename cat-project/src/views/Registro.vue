@@ -1,6 +1,7 @@
 <template>
     <div class="gradient">
         <div class="container">
+
             <div class="scratch-container" :class="{ blurred: showSuccessAnimation || showErrorAnimation }">
 
                 <!-- Pata izquierda con líneas -->
@@ -12,34 +13,42 @@
 
 
                 <div class="cat-silhouette">
+
                     <form id="register-form" ref="registerForm" class="needs-validation" novalidate
                         @submit.prevent="handleRegister" :class="{ 'was-validated': validated }">
-                        <h2>Crear cuenta</h2>
+                        <button @click="cambiarIdioma"  class="idioma-button"
+                            v-tooltip="t('cambiarIdioma')" style="cursor:pointer;background-color:transparent;" >
+
+                            <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" />
+                            <img v-else alt="EN" src="@/assets/en.png" width="50" />
+                        </button>
+                        <h2>{{ t('crearcuenta') }}</h2>
+                        
 
                         <!-- Nombre -->
                         <div class="mb-3">
                             <input type="text" v-model="name" class="form-control" :class="nameValidationClass"
-                                @blur="nameTouched = true" required placeholder="Nombre" />
+                                @blur="nameTouched = true" required :placeholder="t('nombre')" />
                             <div class="invalid-feedback">
-                                Por favor escribe tu nombre.
+                                {{ t('feedbackNombre') }}
                             </div>
                         </div>
 
                         <!-- Apellidos -->
                         <div class="mb-3">
                             <input type="text" v-model="surname" class="form-control" :class="surnameValidationClass"
-                                @blur="surnameTouched = true" required placeholder="Apellidos" />
+                                @blur="surnameTouched = true" required :placeholder="t('apellidos')" />
                             <div class="invalid-feedback">
-                                Por favor escribe tus apellidos.
+                                {{ t('feedbackApellidos') }}
                             </div>
                         </div>
 
                         <!-- Email -->
                         <div class="mb-3">
                             <input type="email" v-model="email" class="form-control" :class="emailValidationClass"
-                                @blur="emailTouched = true" required placeholder="Correo electrónico" />
+                                @blur="emailTouched = true" required :placeholder="t('correoelectronico')" />
                             <div class="invalid-feedback">
-                                Por favor escribe un correo válido.
+                                {{ t('feedbackCorreo') }}
                             </div>
                         </div>
 
@@ -47,9 +56,9 @@
                         <div class="mb-3">
                             <input type="password" v-model="password" class="form-control"
                                 :class="passwordValidationClass" @blur="passwordTouched = true" required
-                                placeholder="Contraseña" />
+                                :placeholder="t('contraseña')" />
                             <div class="invalid-feedback">
-                                La contraseña debe tener al menos 6 caracteres.
+                                {{ t('feedbackContraseña') }}
                             </div>
                         </div>
 
@@ -57,30 +66,30 @@
                         <div class="mb-3">
                             <input type="password" v-model="confirmPassword" class="form-control"
                                 :class="confirmPasswordValidationClass" @blur="confirmPasswordTouched = true" required
-                                placeholder="Confirmar contraseña" />
+                                :placeholder="t('confirmarcontraseña')" />
                             <div class="invalid-feedback">
-                                Las contraseñas no coinciden.
+                                {{ t('feedbackConfirmarContraseña') }}
                             </div>
                         </div>
 
                         <div v-if="passwordMismatch" class="text-danger mb-3">
-                            Las contraseñas no coinciden.
+                            {{ t('feedbackConfirmarContraseña') }}
                         </div>
 
                         <div class="mb-3">
                             <button type="submit" class="btn btn-primary" :disabled="formDisabled">
                                 <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status"
                                     aria-hidden="true"></span>
-                                Crear
+                                {{ t('crear') }}
                             </button>
                         </div>
 
                         <button type="button" @click="loginWithGoogle" class="btn-google">
                             <img src="@/assets/google-icon.png" alt="Google icon" class="google-icon" />
-                            Iniciar sesión con Google
+                            {{ t('iniciarsesionGoogle') }}
                         </button>
 
-                        <span class="login-button" @click="irALogin">Ya tengo una cuenta</span>
+                        <span class="login-button" @click="irALogin">{{ t('yatengocuenta') }}</span>
 
                     </form>
                 </div>
@@ -101,13 +110,13 @@
                 <div class="animation-box text-center">
                     <DotLottieVue :src="successLottie" autoplay :loop="false"
                         style="width: 250px; height: 250px; display: block; margin: 0 auto;" />
-                    <h4 class="text-dark mb-2">¡Registro exitoso!</h4>
-                    <p class="text-muted mb-1">Tu cuenta ha sido creada correctamente.</p>
-                    <p class="text-muted mb-3">Ahora puedes volver o explorar el sitio.</p>
+                    <h4 class="text-dark mb-2">{{ t('registroexitoso') }}</h4>
+                    <p class="text-muted mb-1">{{ t('cuentacreada') }}</p>
+                    <p class="text-muted mb-3">{{ t('explorar') }}</p>
 
                     <div class="btn-group">
-                        <button class="volver" @click="irARegistro">Volver</button>
-                        <button class="home" @click="irAHome">Ir al Home</button>
+                        <button class="volver" @click="irARegistro">{{ t('volver') }}</button>
+                        <button class="home" @click="irAHome">{{ t('iralinicio') }}</button>
                     </div>
                 </div>
             </div>
@@ -142,6 +151,15 @@ import { useRouter } from 'vue-router'
 import { api } from '@/axios'
 import { DotLottieVue } from '@lottiefiles/dotlottie-vue'
 import { useAuthStore } from '@/store/auth';
+import { useI18n } from 'vue-i18n';
+
+const { t, locale } = useI18n();
+
+function cambiarIdioma() {
+    locale.value = locale.value === 'es' ? 'en' : 'es'
+    localStorage.setItem('idioma', locale.value)
+
+}
 
 // Componentes y router
 const router = useRouter()
@@ -225,7 +243,7 @@ const confirmPasswordValidationClass = computed(() =>
 )
 
 function loginWithGoogle() {
-  window.location.href = 'http://127.0.0.1:8000/login-google';
+    window.location.href = 'http://127.0.0.1:8000/login-google';
 }
 
 
@@ -237,14 +255,14 @@ function irALogin() {
 
 
 async function irAHome() {
-    
+
     try {
         await auth.login(email.value, password.value);
         router.push({ name: 'home' });
     } catch (e) {
-       console.log(e);
-    } 
-        
+        console.log(e);
+    }
+
 }
 
 function irARegistro() {
@@ -254,7 +272,7 @@ function irARegistro() {
 }
 
 async function getCsrfCookie() {
-  await api.get('/sanctum/csrf-cookie');
+    await api.get('/sanctum/csrf-cookie');
 }
 
 // Envío del formulario
@@ -276,7 +294,7 @@ async function handleRegister() {
     await getCsrfCookie();
 
     try {
-       
+
         await api.post('/api/register', {
             name: name.value,
             surname: surname.value,
@@ -296,14 +314,14 @@ async function handleRegister() {
         }
         if (error.response && error.response.status === 422) {
             // Error de cuenta existente
-            errorTitle.value = '¡Cuenta existente!'
-            errorLine1.value = 'La dirección de correo electrónico ya está registrada.'
-            errorLine2.value = 'Por favor, usa otro correo o inicia sesión.'
+            errorTitle.value = t('cuentaexistente')
+            errorLine1.value = t('direccioncorreo')
+            errorLine2.value = t('otrocorreo')
         } else {
             // Otros errores
-            errorTitle.value = '¡Error inesperado!'
-            errorLine1.value = 'No se pudo completar el registro.'
-            errorLine2.value = 'Intenta de nuevo más tarde.'
+            errorTitle.value = t('errorinesperado')
+            errorLine1.value = t('completarRegistro')
+            errorLine2.value = t('intentar')
         }
         showErrorAnimation.value = true
     } finally {
@@ -326,7 +344,6 @@ async function handleRegister() {
     background-size: 180% 180%;
     animation: gradient-animation 6s ease infinite;
     display: flex;
-    align-items: flex-start;
     justify-content: center;
     align-items: center;
 }
@@ -345,30 +362,23 @@ async function handleRegister() {
     }
 }
 
-.container {
-    width: 100%;
-    max-width: 900px;
-
-}
 
 .scratch-container {
     display: flex;
     justify-content: center;
     align-items: flex-start;
     gap: 60px;
-    /* espacio entre patas y formulario */
-    position: relative;
-    width: 100%;
-    max-width: 900px;
-    /* que coincida con el container general */
+    width: auto;
+    max-width: 900px; 
     margin: 0 auto;
+    
 }
+
 
 /* Grupo de pata */
 .paw-group {
     position: relative;
     width: 350px;
-    /* ajusta según tamaño pata */
     height: 500px;
 }
 
@@ -493,9 +503,9 @@ async function handleRegister() {
 
 #register-form h2 {
     font-size: 35px;
-    margin-bottom: 0.8rem;
     text-align: center;
     color: #000000;
+    margin-bottom: 0.8rem;
 
 }
 
@@ -506,10 +516,24 @@ async function handleRegister() {
     width: 300px;
     border-radius: 25px;
     font-size: 17px;
-    /* escala entre 14 y 18px */
     padding: 0.6em 1em;
     box-sizing: border-box;
 
+}
+
+#register-form .idioma-button {
+    all: unset; /* Anula todos los estilos heredados */
+    cursor: pointer;
+    background-color: transparent;
+    display:flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -25px;
+    margin: -16px auto -4px auto;
+}
+
+#register-form .idioma-button img {
+    width: 50px;
 }
 
 

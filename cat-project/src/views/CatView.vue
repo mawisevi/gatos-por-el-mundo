@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted, computed, nextTick, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useGetData } from "@/composables/getData";
 import { useFavoritoStore } from "@/store/favoritos";
 import { useMissingImagesStore } from '@/store/missingImages';
 import { useAuthStore } from '@/store/auth';
 import { useFixedFacesStore } from '@/store/fixedFaces';
+import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
+import { useGetData } from '@/composables/getData';
+import { useI18n } from 'vue-i18n';
+
 
 const fixedFaces = useFixedFacesStore();
 
@@ -18,7 +21,12 @@ const catImage = ref(null);
 const catFound = ref(false);
 const selectedCat = ref(null);
 
+const breedsES = ref([]);
 
+
+const { getData, data: breedsEN, error, loading} = useGetData();
+
+const { t, locale } = useI18n();
 
 const auth = useAuthStore();
 auth.loadFromStorage();
@@ -35,13 +43,11 @@ watch(
   () => auth.user,
   (newUser) => {
     if (newUser) {
-      loadFromStorage(); 
+      loadFromStorage();
     }
   },
   { immediate: true }
 );
-
-const { getData, data, error, loading } = useGetData();
 
 
 const getCatStyle = (cat, isOtherDimension = false, isCatView = false) => {
@@ -70,13 +76,13 @@ const getCatImage = (cat) => {
 // Características a mostrar con barras
 const catFeatures = computed(() => {
   if (!selectedCat.value) return [];
-  
+
   return [
-    { name: 'Amabilidad', value: selectedCat.value.affection_level || 0, max: 5 },
-    { name: 'Energía', value: selectedCat.value.energy_level || 0, max: 5 },
-    { name: 'Sociabilidad', value: selectedCat.value.social_needs || 0, max: 5 },
-    { name: 'Vocalización', value: selectedCat.value.vocalisation || 0, max: 5 },
-    { name: 'Inteligencia', value: selectedCat.value.intelligence || 0, max: 5 }
+    { name: t('amabilidad'), value: selectedCat.value.affection_level || 0, max: 5 },
+    { name: t('energia'), value: selectedCat.value.energy_level || 0, max: 5 },
+    { name: t('sociabilidad'), value: selectedCat.value.social_needs || 0, max: 5 },
+    { name: t('vocalización'), value: selectedCat.value.vocalisation || 0, max: 5 },
+    { name: t('inteligencia'), value: selectedCat.value.intelligence || 0, max: 5 }
   ];
 });
 
@@ -84,13 +90,41 @@ const back = () => {
   router.push("/gatos");
 };
 
+// Carga de razas en inglés
+async function loadBreedsEN() {
+  await getData('/breeds'); 
+
+  if (!Array.isArray(breedsEN.value)) {
+    catFound.value = false;
+  }
+}
+
+// Carga de razas en español
+async function loadBreedsES() {
+  const { getTranslatedBreeds } = useGetTranslatedBreeds();
+  const data = await getTranslatedBreeds();
+  if (Array.isArray(data)) {
+    breedsES.value = data;
+  } else {
+    catFound.value = false;
+  }
+}
+
+// Computed que elige qué razas usar según el idioma
+const breedsToShow = computed(() => {
+  return locale.value === 'en' ? breedsEN.value : breedsES.value;
+});
+
+
 
 
 onMounted(async () => {
-  await getData("https://api.thecatapi.com/v1/breeds");
 
-  const cat = data.value.find(
-    (breed) => breed.name.toLowerCase() === route.params.name.toLowerCase()
+  await loadBreedsEN();
+  await loadBreedsES();
+
+  const cat = breedsToShow.value.find(
+    breed => breed.name.toLowerCase().trim() === route.params.name.toLowerCase().trim()
   );
 
   if (cat) {
@@ -99,15 +133,14 @@ onMounted(async () => {
     selectedCat.value = {
       id: cat.id,
       name: cat.name,
-      image: cat.reference_image_id || cat.image?.id,
       description: cat.description,
       temperament: cat.temperament,
       origin: cat.origin,
       life_span: cat.life_span,
-      ...cat 
+      ...cat
     };
-     await nextTick(); 
-  isReady.value = true;
+    await nextTick();
+    isReady.value = true;
   } else {
     catFound.value = false;
   }
@@ -115,31 +148,29 @@ onMounted(async () => {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   auth.loadFromStorage();
-  initTooltips();
 
 });
 
+watch(locale, () => {
+  const cat = breedsToShow.value.find(
+    (breed) => breed.name.toLowerCase().trim() === route.params.name.toLowerCase().trim()
+  );
 
-watch(() => auth.isLoggedIn, () => {
-  initTooltips();
+  if (cat) {
+    selectedCat.value = {
+      description: cat.description,
+      temperament: cat.temperament,
+      origin: cat.origin,
+      ...cat
+    };
+    catImage.value = getCatImage(cat);
+    catFound.value = true;
+  } else {
+    catFound.value = false;
+  }
 });
 
-watch([isLoggedIn, () => selectedCat.value], () => {
-  initTooltips();
-});
 
-async function initTooltips() {
-  const bootstrap = await import('bootstrap');
-  document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((el) => {
-    if (el._tooltipInstance) {
-      el._tooltipInstance.dispose();
-    }
-    el._tooltipInstance = new bootstrap.Tooltip(el);
-    el.addEventListener('mouseleave', () => {
-      el._tooltipInstance.hide();
-    });
-  });
-}
 
 
 
@@ -154,12 +185,12 @@ async function initTooltips() {
         <h1 class="placeholder col-6"></h1>
         <button class="btn-favorite placeholder col-3"></button>
       </div>
-      
+
       <div class="cat-content">
         <div class="cat-image-container placeholder-glow">
           <div class="placeholder cat-image-placeholder"></div>
         </div>
-        
+
         <div class="cat-info">
           <div class="description-section placeholder-glow">
             <h2 class="placeholder col-4"></h2>
@@ -170,18 +201,18 @@ async function initTooltips() {
               <span class="placeholder col-9"></span>
             </p>
           </div>
-          
+
           <div class="details-section placeholder-glow">
             <div class="detail-item">
               <span class="detail-label placeholder col-3"></span>
               <span class="detail-value placeholder col-8"></span>
             </div>
-            
+
             <div class="detail-item">
               <span class="detail-label placeholder col-3"></span>
               <span class="detail-value placeholder col-7"></span>
             </div>
-            
+
             <div class="detail-item">
               <span class="detail-label placeholder col-3"></span>
               <span class="detail-value placeholder col-5"></span>
@@ -189,7 +220,7 @@ async function initTooltips() {
           </div>
         </div>
       </div>
-      
+
       <div class="features-section placeholder-glow">
         <h2 class="placeholder col-4"></h2>
         <div class="features-grid">
@@ -201,101 +232,92 @@ async function initTooltips() {
           </div>
         </div>
       </div>
-      
+
       <button class="btn-back placeholder col-2"></button>
     </div>
 
-    
 
-      <div v-else-if="error" class="error-message">
-        <h1>Gato no encontrado...</h1>
-        <button @click="back()" class="btn btn-outline-secondary">Volver</button>
-      </div>
-      
-     <div v-else-if="isReady && selectedCat" class="cat-card-view">
-        <div class="cat-header">
-          <h1>{{ selectedCat.name }}</h1>
-            <button 
-                :disabled="!isLoggedIn || findCat(selectedCat.name)"
-                @click="add(selectedCat)"
-                class="btn-favorite"
-                data-bs-toggle="tooltip"
-                data-bs-placement="bottom"
-                :title="!isLoggedIn ? 'Debes iniciar sesión para guardar en Favoritos' : null"
-                >
-                {{ !isLoggedIn ? '☆ Agregar a favoritos' : (findCat(selectedCat.name) ? '★ En favoritos' : '☆ Agregar a favoritos') }}
-            </button>
-        </div>
-        
-        <div class="cat-content">
-          <div class="cat-image-container">
-            <img :src="catImage" :alt="selectedCat.name" class="cat-image" :style="getCatStyle(selectedCat, false, true)"/>
-          </div>
-          
-          <div class="cat-info">
-            <div class="description-section">
-              <h2>Descripción</h2>
-              <p>{{ selectedCat.description || 'No hay descripción disponible.' }}</p>
-            </div>
-            
-            <div class="details-section">
-              <div class="detail-item">
-                <span class="detail-label temperament">Temperamento</span>
-                <span class="detail-value">{{ selectedCat.temperament || 'Desconocido' }}</span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label origin">Origen</span>
-                <span class="detail-value">{{ selectedCat.origin || 'Desconocido' }}</span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label lifespan">Esperanza de vida</span>
-                <span class="detail-value">{{ selectedCat.life_span || 'Desconocido' }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="features-section">
-          <h2>Características</h2>
-          <div class="features-grid">
-            <div v-for="feature in catFeatures" :key="feature.name" class="feature-item">
-              <span class="feature-name">{{ feature.name }}</span>
-              <div class="feature-bar-container">
-                <div 
-                  class="feature-bar" 
-                  :style="{ '--value': feature.value, '--max': feature.max }"
-                  :data-value="feature.value"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <button @click="back()" class="btn-back">Volver a la lista</button>
+
+    <div v-else-if="error" class="error-message">
+      <h1>Gato no encontrado...</h1>
+      <button @click="back()" class="btn btn-outline-secondary">Volver</button>
+    </div>
+
+    <div v-else-if="isReady && selectedCat" class="cat-card-view">
+      <div class="cat-header">
+        <h1>{{ selectedCat.name }}</h1>
+        <button :disabled="!isLoggedIn || findCat(selectedCat.name)" @click="add(selectedCat)" class="btn-favorite"
+          v-tooltip.bottom="!isLoggedIn ? t('tooltipFavorito') : null">
+          {{ !isLoggedIn ? t('agregarfavoritos') : (findCat(selectedCat.name) ? t('enfavoritos') : t('agregarfavoritos')) }}
+        </button>
       </div>
 
-     
+      <div class="cat-content">
+        <div class="cat-image-container">
+          <img :src="catImage" :alt="selectedCat.name" class="cat-image"
+            :style="getCatStyle(selectedCat, false, true)" />
+        </div>
+
+        <div class="cat-info">
+          <div class="description-section">
+            <h2>{{ $t('descripcion') }}</h2>
+            <p>{{ selectedCat.description }}</p>
+          </div>
+
+          <div class="details-section">
+            <div class="detail-item">
+              <span class="detail-label temperament">{{ $t('temperamento') }}</span>
+              <span class="detail-value">{{ selectedCat.temperament || 'Desconocido' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label origin">{{ $t('origen') }}</span>
+              <span class="detail-value">{{ selectedCat.origin || 'Desconocido' }}</span>
+            </div>
+
+            <div class="detail-item">
+              <span class="detail-label lifespan">{{ $t('esperanzavida') }}</span>
+              <span class="detail-value">{{ selectedCat.life_span || 'Desconocido' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="features-section">
+        <h2>{{ $t('caracteristicas') }}</h2>
+        <div class="features-grid">
+          <div v-for="feature in catFeatures" :key="feature.name" class="feature-item">
+            <span class="feature-name">{{ feature.name }}</span>
+            <div class="feature-bar-container">
+              <div class="feature-bar" :style="{ '--value': feature.value, '--max': feature.max }"
+                :data-value="feature.value"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button @click="back()" class="btn-back">{{ t('volverlista') }}</button>
+    </div>
+
+
   </div>
 
 </template>
 <style scoped>
-
 @keyframes growWidth {
-    from {
-        width: 0;
-        opacity: 0;
-        padding-left: 0;
-        padding-right: 0;
-    }
+  from {
+    width: 0;
+    opacity: 0;
+    padding-left: 0;
+    padding-right: 0;
+  }
 
-    to {
-        width: calc((var(--value) / var(--max)) * 100%);
-        opacity: 1;
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
+  to {
+    width: calc((var(--value) / var(--max)) * 100%);
+    opacity: 1;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
 }
 
 /* Estilos para los placeholders */
@@ -352,9 +374,12 @@ async function initTooltips() {
 .cat-detail-container {
   margin: 0 auto;
   padding: 2rem;
-  overflow-y: hidden; /* Deshabilitamos scroll por defecto */
-  position: relative; /* Asegura el contexto de posicionamiento */
-  box-sizing: border-box; /* Incluye padding en el cálculo de altura */
+  overflow-y: hidden;
+  /* Deshabilitamos scroll por defecto */
+  position: relative;
+  /* Asegura el contexto de posicionamiento */
+  box-sizing: border-box;
+  /* Incluye padding en el cálculo de altura */
 }
 
 
@@ -395,8 +420,8 @@ async function initTooltips() {
 }
 
 .btn-favorite:disabled {
-    background-color: #a971ae;
-    cursor: auto; 
+  background-color: #a971ae;
+  cursor: auto;
 }
 
 .btn-favorite:hover:not(:disabled) {
@@ -431,7 +456,8 @@ async function initTooltips() {
   gap: 1rem;
 }
 
-.description-section h2, .features-section h2 {
+.description-section h2,
+.features-section h2 {
   color: #5c3b70;
   margin-bottom: 1rem;
   font-size: 1.5rem;
@@ -450,7 +476,7 @@ async function initTooltips() {
   display: flex;
   position: relative;
   flex-wrap: wrap;
-  
+
   gap: 0.5rem;
   margin-bottom: 0rem;
   background: linear-gradient(rgba(157, 103, 184, 0.35));
@@ -478,18 +504,18 @@ async function initTooltips() {
 }
 
 .temperament {
-   background-color: #9d67b8; 
-   border-radius: 12px 0 0 0;
+  background-color: #9d67b8;
+  border-radius: 12px 0 0 0;
 }
 
 .origin {
-   background-color: #bf64c7; 
+  background-color: #bf64c7;
 
 }
 
 .lifespan {
-   background-color: #b3804d; 
-   border-radius: 0 12px 0 0;
+  background-color: #b3804d;
+  border-radius: 0 12px 0 0;
 
 
 
@@ -502,14 +528,18 @@ async function initTooltips() {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 columnas */
-  row-gap: 0.5rem;    /* Espacio entre filas (mantiene tu valor actual) */
-  column-gap: 4rem;  /* Espacio entre elementos */
+  grid-template-columns: repeat(2, 1fr);
+  /* 2 columnas */
+  row-gap: 0.5rem;
+  /* Espacio entre filas (mantiene tu valor actual) */
+  column-gap: 4rem;
+  /* Espacio entre elementos */
 }
 
 .feature-item {
   margin-bottom: 1rem;
-  break-inside: avoid; /* Evita que se dividan entre columnas */
+  break-inside: avoid;
+  /* Evita que se dividan entre columnas */
 }
 
 
@@ -526,8 +556,7 @@ async function initTooltips() {
   position: relative;
   width: 100%;
   height: 40px;
-  background: linear-gradient( 
-    rgba(157, 103, 184, 0.35));
+  background: linear-gradient(rgba(157, 103, 184, 0.35));
   border-radius: 50px;
   overflow: hidden;
 }
@@ -560,8 +589,9 @@ async function initTooltips() {
 
 .btn-back {
   position: absolute;
-   right: 2rem;    /* Distancia desde el borde derecho */
-  bottom: 2rem; 
+  right: 2rem;
+  /* Distancia desde el borde derecho */
+  bottom: 2rem;
   padding: 0.7rem 1rem;
   background-color: #b3804d;
   color: white;
@@ -580,19 +610,20 @@ async function initTooltips() {
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .cat-image-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+  .cat-image-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    .cat-card-view {
-        height: 100%;
-    }
+  .cat-card-view {
+    height: 100%;
+  }
+
   .cat-content {
     flex-direction: column;
   }
-  
+
   .details-section {
     flex-direction: column;
     gap: 1rem;
@@ -607,15 +638,12 @@ async function initTooltips() {
   .lifespan {
     border-radius: 0 0 0 0;
   }
-  
+
   .feature-name {
     width: 100%;
     margin-bottom: 0.5rem;
   }
 }
 
-@media (max-width: 1000px) {
-
-}
-
+@media (max-width: 1000px) {}
 </style>

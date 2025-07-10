@@ -8,6 +8,7 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: () => import('../views/HomeView.vue'),
+
     },
    
     {
@@ -15,18 +16,21 @@ const router = createRouter({
       name: 'gatos',
 
       component: () => import('../views/GatosView.vue'),
+
     },
 
     {
       path: "/gatos/:name",
       name: "cat",
       component: () => import("../views/CatView.vue"),
+
     },
 
     {
       path: "/favoritos",
       name: "favoritos",
       component: () => import("../views/FavoritosView.vue"),
+
     },
 
     {
@@ -47,6 +51,7 @@ const router = createRouter({
       path: "/perfil",
       name: "perfil",
       component: () => import("../views/PerfilView.vue"),
+
     },
 
     { 

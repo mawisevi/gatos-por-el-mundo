@@ -5,6 +5,9 @@ import { useMissingImagesStore } from '@/store/missingImages';
 import { useFavoritoStore } from '@/store/favoritos';
 import { onMounted, watch, nextTick } from 'vue';
 import { useAuthStore } from '@/store/auth';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 
 const favoritoStore = useFavoritoStore();
@@ -57,8 +60,8 @@ watch(data, async (newVal) => {
 
 <template>
   <div class="gatos-fullscreen">
-    <h1>Gatos</h1>
-    <p v-if="loading">Cargando</p>
+    <h1>{{ t('gatosTitulo')}}</h1>
+    <p v-if="loading"></p>
     <div class="alert alert-danger mt-2" v-if="error">{{ error }}</div>
     
     <!-- Versión con placeholders -->

@@ -3,8 +3,9 @@ import { computed } from 'vue';
 import { useFixedFacesStore } from '@/store/fixedFaces';
 import { useMissingImagesStore } from '@/store/missingImages';
 import { useWindowSize } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
 
-
+const { t } = useI18n();
 
 const fixedFaces = useFixedFacesStore();
 const missingImages = useMissingImagesStore();
@@ -12,7 +13,7 @@ const { width } = useWindowSize();
 
 const props = defineProps({
     cats: Array,
-    ratingType: {  // Nueva prop
+    ratingType: {  
         type: String,
         validator: value => ['affection_level', 'life_span', 'intelligence', 'social_needs', 'energy_level', 'weight_kg', 'vocalisation', 'child_friendly', 'dog_friendly'].includes(value)
     },
@@ -44,12 +45,12 @@ const getCatImage = (cat) => {
 
 <template>
     <div v-if="!cats || cats.length === 0" class="no-cats-message text-center p-3">
-      No existe ranking para mostrar en este continente
+      {{ t('rankingContinente')}}
     </div>
     <div v-else :class="['podium-container', { 'single-breed': isSingleBreed }]">
         <!-- 1º lugar -->
         <div class="podium-item" :style="{ '--order': 1 }">
-            <span class="podium-rank">1º {{ cats[0]?.name }}</span>
+            <span class="podium-rank">{{ t('primero')}} {{ cats[0]?.name }}</span>
             <div class="podium-bar place-1">
                 <div class="image-border place-1">
                     <div class="image-wrapper place-1">
@@ -71,7 +72,7 @@ const getCatImage = (cat) => {
         <!-- 2º lugar -->
         <template v-if="!isSingleBreed && cats.length > 1">
             <div class="podium-item" :style="{ '--order': 2 }">
-                <span class="podium-rank">2º {{ cats[1]?.name }}</span>
+                <span class="podium-rank">{{ t('segundo')}} {{ cats[1]?.name }}</span>
                 <div class="podium-bar place-2">
                     <div class="image-border place-2">
                         <div class="image-wrapper place-2">
@@ -93,7 +94,7 @@ const getCatImage = (cat) => {
 
             <!-- 3º lugar -->
             <div class="podium-item" :style="{ '--order': 3 }">
-                <span class="podium-rank">3º {{ cats[2]?.name }}</span>
+                <span class="podium-rank">{{ t('tercero')}} {{ cats[2]?.name }}</span>
                 <div class="podium-bar place-3">
                     <div class="image-border place-3">
                         <div class="image-wrapper place-3">

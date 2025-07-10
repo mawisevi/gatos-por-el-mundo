@@ -16,7 +16,7 @@ const auth = useAuthStore()
 
 onMounted(async () => {
   await auth.handleGoogleAuth()
-  router.push('/') // Redirige a home o donde quieras
+  router.push('/') 
 
 });
 

@@ -74,7 +74,7 @@ onMounted(async () => {
 <template>
   <div class="carousel-container">
     <header class="title-header">
-      <h1 class="full-width-title">Razas de gatos</h1>
+      <h1 class="full-width-title">{{ $t('razasdegatos') }}</h1>
     </header>
     <Carousel :items-to-show="itemsToShow" :autoplay="5000"  :wrap-around="true"  :pause-autoplay-on-hover="true"
       :mouse-drag="false" :touch-drag="false" :transition="1000">
