@@ -4,8 +4,8 @@
             <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
                 v-tooltip="t('cambiarIdioma')" style="cursor:pointer; position:absolute; top: 11rem; z-index: 10;">
 
-                <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" />
-                <img v-else alt="EN" src="@/assets/en.png" width="50" />
+                <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" />
+                <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" />
             </button>
             <div id="cat-silhouette">
                 <form id="login-form" @submit.prevent="handleLogin">

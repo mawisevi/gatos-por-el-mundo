@@ -19,8 +19,8 @@
                         <button @click="cambiarIdioma"  class="idioma-button"
                             v-tooltip="t('cambiarIdioma')" style="cursor:pointer;background-color:transparent;" >
 
-                            <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" />
-                            <img v-else alt="EN" src="@/assets/en.png" width="50" />
+                            <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" />
+                            <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" />
                         </button>
                         <h2>{{ t('crearcuenta') }}</h2>
                         
