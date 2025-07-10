@@ -20,9 +20,16 @@ Incorpora autenticación estándar y con Google OAuth, un mapa interactivo donde
 
 ### 1. Clonar el repositorio
 
+Para clonar el repositorio junto con el submódulo `LibreTranslate` (necesario para el cambio de idioma) utiliza:
+
 ```bash
-git clone https://github.com/mawisevi/gatos-por-el-mundo.git
+git clone --recurse-submodules https://github.com/mawisevi/gatos-por-el-mundo.git
 cd gatos-por-el-mundo
+```
+
+En el caso de que ya clonaste el repositorio sin el submódulo, puedes inicializarlo y descargarlo con:
+```bash
+git submodule update --init --recursive
 ```
 
 ---
@@ -61,6 +68,8 @@ npm run dev
 ```
 
 ---
+
+
 
 ### 4. Acceso a la aplicación
 Frontend Vue: http://localhost:5173
