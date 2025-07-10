@@ -6,8 +6,8 @@
 
             <div id="map-column">
 
-                <WorldMap ref="worldMapRef" id="map-container" @continent-selected="handleContinentSelected"
-                    @reset="handleMapReset" />
+                <WorldMap ref="worldMapRef" id="map-container" :podium-cats="podiumCats"
+                    @continent-selected="handleContinentSelected" @reset="handleMapReset" />
             </div>
 
             <div id="buttons-column" class="d-flex flex-column gap-2">
@@ -44,7 +44,7 @@
 
                             </div>
                             <div v-else class="no-cats-message text-center p-3">
-                                {{ t('razasContinente')}}
+                                {{ t('razasContinente') }}
                             </div>
                         </div>
                     </div>
@@ -54,10 +54,11 @@
                         <div v-if="selectedRanking && !isReturning" class="ranking-content">
 
                             <RankingList :title="selectedRanking.label" :cats="topCatsByRanking"
-                                :prop="selectedRanking.type" :isLifeSpan="isLifeSpan" :isWeight="isWeight" />
+                                :prop="selectedRanking.type" :isLifeSpan="isLifeSpan" :isWeight="isWeight"
+                                @update-podium="podiumCats = $event" />
                             <button :style="{ display: showNoCatsMessage ? 'none' : 'inline-block' }"
                                 @click="startReturn" class="volver-boton">
-                                {{t('volver')}}
+                                {{ t('volver') }}
                             </button>
                         </div>
                     </transition>
@@ -105,14 +106,22 @@ const continents = computed(() => [
 ]);
 
 const activeContinent = ref(null);
+
+const deselectContinent = () => {
+    activeContinent.value = null;
+};
+
 const hoveredContinent = ref(null);
 const selectedRanking = ref(null);
+const rankingKey = ref(0);
 
 const selectionFromButton = ref(false);
 const continentCounts = ref({});
 const isReturning = ref(false);
 const isFadingOut = ref(false);
 const hasMoved = ref(false);
+
+const podiumCats = ref([]);
 
 const wrapperStyle = computed(() => {
     return {
@@ -190,7 +199,7 @@ const handleMapReset = () => {
 
 
 // Función unificada para selección/deselección
-const toggleContinent = async (continentId) => {
+const toggleContinent = (continentId) => {
     if (activeContinent.value === continentId) {
         // Deseleccionar y resetear
         activeContinent.value = null;
@@ -199,7 +208,6 @@ const toggleContinent = async (continentId) => {
         selectionFromButton.value = true;
         // Seleccionar continente primero
         activeContinent.value = continentId;
-        await nextTick();
         // Luego mostrar el continente en el mapa
         window._mapAPI?.showContinentData?.(continentId);
     }
@@ -211,7 +219,8 @@ const handleContinentSelected = (continentId) => {
         return; // Ignoramos este evento duplicado
     }
     if (activeContinent.value === continentId) {
-        deselectContinent();
+        activeContinent.value = null;
+        resetMapView();
     } else {
         activeContinent.value = continentId;
     }
@@ -349,14 +358,14 @@ const selectRanking = (rank) => {
 };
 
 
-
 const startReturn = () => {
     isReturning.value = true;
     hasMoved.value = false;
+    podiumCats.value = [];
 
     // Esperamos que la animación dure 400ms antes de resetear
     setTimeout(() => {
-        selectedRanking.value = null;
+        selectedRanking.value = null; 
         isReturning.value = false;
     }, 400);
 };

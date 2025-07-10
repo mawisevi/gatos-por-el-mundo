@@ -22,6 +22,7 @@ import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
 
 const { t, locale } = useI18n();
 
+let container;
 
 
 const missingImages = useMissingImagesStore();
@@ -47,6 +48,12 @@ let zoomControl;
 let currentContinent = null;
 
 const emit = defineEmits(['continent-selected', 'reset']); //para que muestre los rankings
+
+const props = defineProps({
+    podiumCats: Array,
+});
+
+const circlesMap = new Map();
 
 
 // 1. Definimos la función fuera de onMounted pero que usa las variables let
@@ -109,10 +116,12 @@ const showContinentData = (continentId, color = am5.color(0x53a785)) => {
         if (point.image) new Image().src = point.image;
     });
 
+
     // Mostrar puntos
     if (pointSeries) {
         pointSeries.data.setAll([]);
         setTimeout(() => {
+            circlesMap.clear();
             pointSeries.data.setAll(jitteredPoints);
             pointSeries.set("visible", true);
             pointSeries.set("layer", 100);
@@ -140,6 +149,7 @@ const showContinentData = (continentId, color = am5.color(0x53a785)) => {
             );
         }
     }, 100);
+
 
     emit('continent-selected', continentId);
 };
@@ -195,12 +205,91 @@ const goHome = () => {
 window._mapAPI = { showContinentData, goHome };
 
 
-
 async function fetchBreeds() {
     const response = await fetch("https://api.thecatapi.com/v1/breeds");
     const data = await response.json();
     return data;
 }
+
+function getColorForIndex(index) {
+    const colors = [0xFFD700, 0xC0C0C0, 0xCD7F32]; // oro, plata, bronce
+    return index !== -1 ? am5.color(colors[index]) : am5.color(0xffffff);
+}
+
+const animateRankingSequentially = async (rankingList) => {
+    for (let i = 0; i < rankingList.length; i++) {
+        const cat = rankingList[i];
+        const container = circlesMap.get(cat.id);
+        if (!container || container.isDisposed()) continue;
+
+        container.set("layer", 500);
+
+        if (container.parent) {
+            container.parent.children.moveValue(container, container.parent.children.length - 1);
+        }
+
+        const circleChild = container.children.getIndex(0);
+        let label = container._rankingLabel || null;
+
+        const color = getColorForIndex(i);
+
+        // Círculo
+        if (circleChild) {
+            circleChild.setAll({
+                radius: 5,
+                fill: color,
+                opacity: 1,
+                layer: 500,
+            });
+
+            circleChild.markDirty();
+
+            circleChild.animate({
+                key: "radius",
+                to: 10,
+                duration: 600,
+                easing: am5.ease.out(am5.ease.cubic),
+            });
+
+            circleChild.animate({
+                key: "opacity",
+                to: 1,
+                duration: 1000,
+                easing: am5.ease.out(am5.ease.cubic),
+            });
+        }
+
+        // Label
+        if (!label) {
+
+            label = am5.Label.new(root, {
+                text: String(i + 1),
+                fontSize: 12,
+                fontWeight: "bold",
+                centerX: am5.p50,
+                centerY: am5.p50,
+                fill: am5.color(0x000000),
+                opacity: 0,
+            });
+            container.children.push(label);
+            container._rankingLabel = label;
+        } else {
+            label.set("text", String(i + 1));
+            label.set("layer", 520);
+        }
+
+        label.animate({
+            key: "opacity",
+            to: 1,
+            duration: 400,
+            easing: am5.ease.out(am5.ease.cubic)
+        });
+
+        // Esperar antes de mostrar el siguiente
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+};
+
 
 let allPoints = ref([]);
 
@@ -360,16 +449,39 @@ onMounted(async () => {
 
 
 
-    pointSeries.bullets.push((root, dataItem) => {
+    pointSeries.bullets.clear();
 
+    pointSeries.bullets.push((root, series, dataItem) => {
+
+        const dataContext = dataItem.dataContext;
+
+        // Verificar si dataContext existe
+        if (!dataContext) {
+            console.error("dataContext is undefined", dataItem);
+            return am5.Bullet.new(root, {
+                sprite: am5.Circle.new(root, {
+                    radius: 5,
+                    fill: am5.color(0xff0000) // Rojo para indicar error
+                })
+            });
+        }
+
+        const catId = dataContext.id;
+
+        const hasRanking = props.podiumCats && props.podiumCats.length > 0;
+        // Buscar índice en Ranking
+        const podiumIndex = hasRanking ? props.podiumCats.findIndex(cat => cat.id === catId) : -1;
+
+        container = am5.Container.new(root, {
+            centerX: am5.p50,
+            centerY: am5.p50
+        });
 
         const circle = am5.Circle.new(root, {
-
-            radius: 5,
-            fill: am5.color(0xffffff),
+            radius: podiumIndex !== -1 ? 10 : 5,
+            fill: getColorForIndex(podiumIndex),
             stroke: am5.color(0x000000),
             strokeWidth: 1.5,
-
             opacity: 0,
             cursorOverStyle: "pointer",
             tooltipPosition: "pointer",
@@ -378,15 +490,63 @@ onMounted(async () => {
 
         });
 
+
+        container.children.push(circle);
+        // Label solo si está rankeado
+        let label = null;
+
+        if (podiumIndex !== -1) {
+            circle.set("layer", 500);
+            label = am5.Label.new(root, {
+                text: String(podiumIndex + 1),
+                fontSize: 12,
+                fontWeight: "bold",
+                layer: 500,
+                centerX: am5.p50,
+                centerY: am5.p50,
+                fill: am5.color(0x000000),
+                opacity: 0
+
+            });
+
+            container.children.push(label);
+            container._rankingLabel = label;
+
+
+            circle.animate({
+                key: "radius",
+                to: 10,
+                duration: 600,
+                easing: am5.ease.out(am5.ease.cubic)
+            });
+
+            circle.animate({
+                key: "fill",
+                to: getColorForIndex(podiumIndex),
+                duration: 600,
+                easing: am5.ease.out(am5.ease.cubic)
+            });
+
+            if (label) {
+
+                label.animate({
+                    key: "opacity",
+                    to: 1,
+                    duration: 600,
+                    easing: am5.ease.out(am5.ease.cubic)
+                });
+
+            }
+        }
+
+
         const tooltip = am5.Tooltip.new(root, {
-            layer: 200,
+            layer: 600,
             animationDuration: 300, // en ms
             animationEasing: am5.ease.out(am5.ease.cubic)
         });
 
         circle.set("tooltip", tooltip);
-
-
 
         // Usamos un adaptador para que el contenido del tooltip sea dinámico según el dataItem y traducción
         circle.adapters.add("tooltipHTML", (html, target) => {
@@ -412,8 +572,10 @@ onMounted(async () => {
             easing: am5.ease.out(am5.ease.cubic)
         });
 
+        circlesMap.set(catId, container);
+
         return am5.Bullet.new(root, {
-            sprite: circle,
+            sprite: container,
 
         });
     });
@@ -443,10 +605,6 @@ onMounted(async () => {
 
 });
 
-
-
-
-
 watch(locale, async () => {
 
     await loadPoints();
@@ -461,6 +619,59 @@ watch(locale, async () => {
 
 });
 
+
+watch(() => [props.podiumCats, circlesMap.size],
+    ([newPodium]) => {
+        if (!Array.isArray(newPodium)) return;
+
+        animateRankingSequentially(newPodium);
+
+        circlesMap.forEach((container, catId) => {
+
+
+            if (!container || container.isDisposed()) return;
+
+            const index = newPodium.findIndex(cat => cat.id === catId);
+            const isRanked = index !== -1;
+            const circleChild = container.children.getIndex(0);
+            const label = container._rankingLabel || null;
+
+            if (!isRanked) {
+                if (circleChild) {
+                    circleChild.set("layer", 500);
+                    // Animamos el radio a 5 (normal) y el color a blanco de forma suave, sin tocar la opacidad
+                    circleChild.animate({
+                        key: "radius",
+                        to: 5,
+                        duration: 700,
+                        easing: am5.ease.out(am5.ease.cubic),
+                    });
+                    circleChild.animate({
+                        key: "fill",
+                        to: am5.color(0xffffff),
+                        duration: 700,
+                        easing: am5.ease.out(am5.ease.cubic),
+                    });
+                    // Aseguramos que la opacidad quede en 1
+                    circleChild.set("opacity", 1);
+                    circleChild.markDirty();
+                }
+                if (label) {
+                    label.set("layer", 600);
+                    // Animamos opacidad a 0 para que desaparezca suave
+                    label.animate({
+                        key: "opacity",
+                        to: 0,
+                        duration: 700,
+                        easing: am5.ease.out(am5.ease.cubic),
+
+
+                    });
+                }
+            }
+        });
+
+    });
 
 
 

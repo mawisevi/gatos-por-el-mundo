@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import Podium from './Podium.vue';
 
 const props = defineProps({
@@ -10,6 +10,8 @@ const props = defineProps({
   isWeight: Boolean
 });
 
+const emit = defineEmits(['update-podium']);
+
 const shouldAnimate = ref(false);
 
 const isSingleBreed = computed(() => props.cats.length === 1);
@@ -18,13 +20,28 @@ const isSingleBreed = computed(() => props.cats.length === 1);
 onMounted(() => {
   setTimeout(() => {
     shouldAnimate.value = true;
+    // Emite los 3 mejores gatos al padre
+    if (!isSingleBreed.value) {
+      emit('update-podium', props.cats.slice(0, 3));
+    } else {
+      emit('update-podium', props.cats); // por si hay solo 1
+    }
   }, 400); // Igual que la duración de tu zoom
+});
+
+watch(() => props.cats, (newCats) => {
+  if (!isSingleBreed.value) {
+    emit('update-podium', newCats.slice(0, 3));
+  } else {
+    emit('update-podium', newCats);
+  }
 });
 
 </script>
 
 <template>
   <section class="ranking-section">
+
     <h3>{{ title }}</h3>
 
     <Podium :cats="isSingleBreed ? cats.slice(0, 1) : cats.slice(0, 3)" :ratingType="prop" :animate="shouldAnimate"
