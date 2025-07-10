@@ -3,3 +3,7 @@ body {
   background-color: #431b59;
 
 }
+
+* {
+  scrollbar-color: #7444ab #fff;
+}

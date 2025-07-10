@@ -73,8 +73,8 @@ function cambiarIdioma() {
         <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
            v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
 
-          <img v-if="locale === 'es'" alt="ES" src="@/assets/es.png" width="50" style="margin-top: 1px;" class="icon-default" />
-          <img v-else alt="EN" src="@/assets/en.png" width="50" style="margin-top: 1px;"  />
+          <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" style="margin-top: 1px;" class="icon-default" />
+          <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" style="margin-top: 1px;"  />
         </button>
 
         <router-link active-class="active" class="icon-container" v-tooltip="t('home')" style="cursor:pointer;" to="/">
@@ -156,6 +156,7 @@ body {
   overflow-x: hidden;
   /* Evita scroll horizontal */
 }
+
 
 
 .page-wrapper {
