@@ -2,6 +2,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { api } from '@/axios';
+import { useFavoritoStore } from './favoritos';
+
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null);
@@ -66,6 +68,9 @@ export const useAuthStore = defineStore('auth', () => {
         const userResponse = await api.get('/api/user');
         setUser(userResponse.data);
 
+        const favoritoStore = useFavoritoStore();
+        favoritoStore.loadFromStorage();
+
         window.location.href = '/';
 
 
@@ -74,8 +79,8 @@ export const useAuthStore = defineStore('auth', () => {
     async function handleGoogleAuth() {
         const token = new URLSearchParams(window.location.search).get('token');
         if (token) {
-            setToken(token);           
-            await fetchUser();        
+            setToken(token);
+            await fetchUser();
         }
     }
 
@@ -90,9 +95,8 @@ export const useAuthStore = defineStore('auth', () => {
 
 
 
-
-
     async function logout() {
+        const favoritoStore = useFavoritoStore();
         try {
             const token = localStorage.getItem('auth_token');
 
@@ -112,6 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
                 console.error('Logout error:', e);
             }
         } finally {
+            favoritoStore.clear();
             user.value = null;
             isLoggedIn.value = false;
             localStorage.removeItem('auth_token');

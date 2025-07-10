@@ -30,7 +30,11 @@ export const useFavoritoStore = defineStore("favoritos", () => {
         favoritos.value = favoritos.value.filter((item) => item.id !== id);
         saveToStorage();
     };
-   
+
+    const clear = () => {
+        favoritos.value = [];
+    };
+
 
     const findCat = (name) =>
         favoritos.value.find((item) => item.name === name);
@@ -43,5 +47,6 @@ export const useFavoritoStore = defineStore("favoritos", () => {
         remove,
         findCat,
         loadFromStorage,
+        clear,
     };
 });

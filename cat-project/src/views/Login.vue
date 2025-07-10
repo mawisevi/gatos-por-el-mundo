@@ -252,7 +252,7 @@ async function handleLogin() {
     background-color: #d58f16;
     color: white;
     border: none;
-    font-size: 18px;
+    font-size: 17px;
     cursor: pointer;
     transition: background-color 0.3s ease;
 
@@ -260,7 +260,7 @@ async function handleLogin() {
     justify-content: center;
     align-items: center;
     text-align: center;
-    transform: translateX(286%);
+    transform: translateX(290%);
 }
 
 #btn-circle-login:hover {

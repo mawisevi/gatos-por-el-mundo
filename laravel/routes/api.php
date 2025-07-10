@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BreedController;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
