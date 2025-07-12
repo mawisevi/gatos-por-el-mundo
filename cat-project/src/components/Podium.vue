@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useFixedFacesStore } from '@/store/fixedFaces';
 import { useMissingImagesStore } from '@/store/missingImages';
 import { useWindowSize } from '@vueuse/core';
@@ -11,16 +11,24 @@ const fixedFaces = useFixedFacesStore();
 const missingImages = useMissingImagesStore();
 const { width } = useWindowSize();
 
+
+const emit = defineEmits(['highlight-location', 'clear-highlight', 'show-tooltip', 'hide-tooltip']);
+
 const props = defineProps({
     cats: Array,
-    ratingType: {  
+    ratingType: {
         type: String,
         validator: value => ['affection_level', 'life_span', 'intelligence', 'social_needs', 'energy_level', 'weight_kg', 'vocalisation', 'child_friendly', 'dog_friendly'].includes(value)
     },
-    isSingleBreed: Boolean
+    isSingleBreed: Boolean,
+    hasContinentSelected: Boolean,
 });
 
 const isOtherDimension = computed(() => width.value < 1400);
+
+const isHovered1 = ref(false);
+const isHovered2 = ref(false);
+const isHovered3 = ref(false);
 
 
 let getFaceStyle = (cat) => {
@@ -41,23 +49,43 @@ const getCatImage = (cat) => {
 };
 
 
+
 </script>
 
 <template>
     <div v-if="!cats || cats.length === 0" class="no-cats-message text-center p-3">
-      {{ t('rankingContinente')}}
+        {{ t('rankingContinente') }}
     </div>
     <div v-else :class="['podium-container', { 'single-breed': isSingleBreed }]">
         <!-- 1º lugar -->
         <div class="podium-item" :style="{ '--order': 1 }">
-            <span class="podium-rank">{{ t('primero')}} {{ cats[0]?.name }}</span>
+            <span class="podium-rank">{{ t('primero') }} {{ cats[0]?.name }}</span>
             <div class="podium-bar place-1">
-                <div class="image-border place-1">
-                    <div class="image-wrapper place-1">
-                        <img v-if="getCatImage(cats[0])" :src="getCatImage(cats[0])" class="cat-image place-1"
-                            :style="getFaceStyle(cats[0])" alt="1º lugar">
+                <router-link :to="{ name: 'cat', params: { name: cats[0].name.toLowerCase() } }">
+                    <div class="image-container place-1">
+                        <div class="image-border place-1">
+                            <div class="image-wrapper place-1">
+                                <img v-if="getCatImage(cats[0])" :src="getCatImage(cats[0])" class="cat-image place-1"
+                                    :style="getFaceStyle(cats[0])" alt="1º lugar" @mouseenter="() => {
+                                        if (!hasContinentSelected) {
+                                            isHovered1 = true;
+                                            emit('highlight-location', { code: cats[0]?.country_code, cat: cats[0] });
+                                        } else {
+                                            emit('show-tooltip', cats[0]?.id, cats[0]);
+                                        }
+                                    }" @mouseleave="() => {
+                                        if (!hasContinentSelected) {
+                                            isHovered1 = false;
+                                            emit('clear-highlight');
+                                        } else {
+                                            emit('hide-tooltip', cats[0]?.id);
+                                        }
+                                    }" />
+
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </router-link>
                 <span :class="[
                     'rating-value',
                     'place-1',
@@ -72,15 +100,34 @@ const getCatImage = (cat) => {
         <!-- 2º lugar -->
         <template v-if="!isSingleBreed && cats.length > 1">
             <div class="podium-item" :style="{ '--order': 2 }">
-                <span class="podium-rank">{{ t('segundo')}} {{ cats[1]?.name }}</span>
+                <span class="podium-rank">{{ t('segundo') }} {{ cats[1]?.name }}</span>
                 <div class="podium-bar place-2">
-                    <div class="image-border place-2">
-                        <div class="image-wrapper place-2">
-                            <img v-if="getCatImage(cats[1])" :src="getCatImage(cats[1])" class="cat-image place-2"
-                                :style="getFaceStyle(cats[1])" alt="2º lugar">
+                    <router-link :to="{ name: 'cat', params: { name: cats[1].name.toLowerCase() } }">
+                        <div class="image-container place-2">
+                            <div class="image-border place-2">
+                                <div class="image-wrapper place-2">
+                                    <img v-if="getCatImage(cats[1])" :src="getCatImage(cats[1])"
+                                        class="cat-image place-2" :style="getFaceStyle(cats[1])" alt="2º lugar"
+                                        @mouseenter="() => {
+                                            if (!hasContinentSelected) {
+                                                isHovered2 = true;
+                                                emit('highlight-location', { code: cats[1]?.country_code, cat: cats[1] });
+                                            } else {
+                                                emit('show-tooltip', cats[1]?.id, cats[1]);
+                                            }
+                                        }" @mouseleave="() => {
+                                            if (!hasContinentSelected) {
+                                                isHovered2 = false;
+                                                emit('clear-highlight');
+                                            } else {
+                                                emit('hide-tooltip', cats[1]?.id);
+                                            }
+                                        }" />
 
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </router-link>
                     <span :class="[
                         'rating-value',
                         'place-2',
@@ -94,15 +141,40 @@ const getCatImage = (cat) => {
 
             <!-- 3º lugar -->
             <div class="podium-item" :style="{ '--order': 3 }">
-                <span class="podium-rank">{{ t('tercero')}} {{ cats[2]?.name }}</span>
+                <span class="podium-rank">{{ t('tercero') }} {{ cats[2]?.name }}</span>
                 <div class="podium-bar place-3">
-                    <div class="image-border place-3">
-                        <div class="image-wrapper place-3">
-                            <img v-if="getCatImage(cats[2])" :src="getCatImage(cats[2])" class="cat-image place-3"
-                                :style="getFaceStyle(cats[2])" alt="3º lugar">
+                    <router-link :to="{ name: 'cat', params: { name: cats[2].name.toLowerCase() } }">
+                        <div class="image-container place-3">
+                            <div class="image-border place-3">
+                                <div class="image-wrapper place-3">
+                                    <img v-if="getCatImage(cats[2])" :src="getCatImage(cats[2])"
+                                        class="cat-image place-3" :style="getFaceStyle(cats[2])" alt="3º lugar"
+                                        @mouseenter="() => {
+                                            if (!hasContinentSelected) {
+                                                isHovered3 = true;
+                                                emit('highlight-location', { code: cats[2]?.country_code, cat: cats[2] });
+                                            } else {
+                                                emit('show-tooltip', cats[2]?.id, cats[2]);
+                                            }
+                                        }" @mouseleave="() => {
+                                            if (!hasContinentSelected) {
+                                                isHovered3 = false;
+                                                emit('clear-highlight');
+                                            } else {
+                                                emit('hide-tooltip', cats[2]?.id);
+                                            }
+                                        }" />
 
+                                    <!-- Overlay del país -->
+                                    <div v-if="isHovered3 && !hasContinentSelected"
+                                        class="hover-country-overlay d-flex justify-content-center align-items-center">
+                                        <span class="text-white fw-bold text-center px-2">{{ cats[2]?.origin }}</span>
+                                    </div>
+
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    </router-link>
                     <span :class="[
                         'rating-value',
                         'place-3',
@@ -184,12 +256,30 @@ const getCatImage = (cat) => {
 }
 
 
+
+.image-container {
+    position: relative;
+    top: -1.65rem;
+    transition: transform 0.3s ease;
+    transform-origin: center 20px;
+    cursor: pointer;
+}
+
+
+
+.image-container:hover {
+    transform: scale(1.15);
+    z-index: 10;
+}
+
+
+
 .image-border {
     position: absolute;
     top: -8px;
-    /* Ajusta según altura del podio */
-    width: 69px;
-    height: 69px;
+    /* Ajusta según altu    ra del podio */
+    width: 70px;
+    height: 70px;
     transform: translateX(-52%);
     border-radius: 50%;
 
@@ -225,9 +315,12 @@ const getCatImage = (cat) => {
     width: 60px;
     height: 60px;
     border-radius: 50%;
+    position: relative;
     overflow: hidden;
 
+
 }
+
 
 
 .cat-image {
@@ -361,8 +454,10 @@ const getCatImage = (cat) => {
 @media (max-width: 1399.98px) {
     .podium-container {
         flex-direction: row;
+        justify-content: space-around;
         align-items: center;
         position: relative;
+        width: 100%;
 
     }
 
@@ -391,6 +486,8 @@ const getCatImage = (cat) => {
         flex-direction: column-reverse;
         height: 685px;
         align-items: center;
+        z-index: 1;
+        width: 200px;
 
     }
 
@@ -409,6 +506,38 @@ const getCatImage = (cat) => {
     .place-3 {
         --target-height: 16%;
         background: linear-gradient(to top, rgba(205, 127, 50, 0.7), #CD7F32);
+    }
+
+    .image-container {
+        position: relative;
+        transition: transform 0.3s ease;
+        transform-origin: 40px 80px;
+        right: 2.67rem;
+        opacity: 0;
+        cursor: pointer;
+        animation: fadeIn 0.5s ease-out forwards;
+        animation-delay: calc(var(--order) * 0.3s + 0.4s);
+    }
+
+    .image-container.place-1 {
+        top: -6.75rem;
+
+    }
+
+    .image-container.place-2 {
+        top: -5rem;
+
+    }
+
+    .image-container.place-3 {
+        top: -3.25rem;
+
+    }
+
+
+    .image-container.hovered {
+        transform: scale(1.15);
+        z-index: 10;
     }
 
 
@@ -465,12 +594,10 @@ const getCatImage = (cat) => {
         height: 100%;
         object-fit: cover;
         opacity: 0;
-        animation: fadeIn 0.3s ease-out forwards;
+        animation: fadeIn 0.5s ease-out forwards;
         animation-delay: calc(var(--order) * 0.3s + 0.4s);
 
     }
-
-
 
 
 
@@ -482,7 +609,7 @@ const getCatImage = (cat) => {
         text-align: center;
     }
 
-    /* Animaciones (opcional) */
+
     @keyframes growHeight {
         from {
             height: 0;
@@ -504,7 +631,7 @@ const getCatImage = (cat) => {
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         display: flex;
         justify-content: center;
-        animation: growHeight 0.6s ease-out forwards;
+        animation: growHeight 0.8s ease-out forwards;
         animation-delay: calc(var(--order) * 0.3s);
     }
 
@@ -625,7 +752,7 @@ const getCatImage = (cat) => {
         top: 40px;
         padding: 50px 22.5px;
         padding-bottom: 12px;
-    } 
+    }
 
 
 }

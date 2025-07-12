@@ -19,6 +19,9 @@ import fixedPoints from "@/store/fixedPoints";
 import { useMissingImagesStore } from "@/store/missingImages";
 import { useI18n } from 'vue-i18n';
 import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
+import { useFixedFacesStore } from '@/store/fixedFaces';
+
+const fixedFaces = useFixedFacesStore();
 
 const { t, locale } = useI18n();
 
@@ -38,14 +41,27 @@ const getCatImage = (breed) => {
     return overrideImage || `https://cdn2.thecatapi.com/images/${breed.reference_image_id}.jpg`;
 };
 
+const getCatStyle = (cat, isOtherDimension = false, isCatView = false, isTooltip = false) => {
+    const breedId = cat?.id?.substring(0, 4).toLowerCase();
+    const { zoom, x = '0px', y = '0px' } = fixedFaces.getSettings(breedId, isOtherDimension, isCatView, isTooltip);
+
+    return {
+        objectPosition: `${x} ${y}`,
+        objectFit: 'cover',
+        transform: `scale(${zoom})`,
+    };
+};
+
 
 const router = useRouter();
 
-let root, chart, countrySeries, series, pointSeries;
+let root, chart, countrySeries, countrySeriesRanking, series, pointSeries, projection;
 
 let zoomControl;
 
 let currentContinent = null;
+
+
 
 const emit = defineEmits(['continent-selected', 'reset']); //para que muestre los rankings
 
@@ -63,17 +79,23 @@ const showContinentData = (continentId, color = am5.color(0x53a785)) => {
     currentContinent = continentId;
     series.hide();
 
+    if (countrySeriesRanking) {
+        countrySeriesRanking.set("visible", false);
+    }
+
     // Crear serie de países si no existe
     if (!countrySeries) {
         countrySeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
             geoJSON: am5geodata_worldLow,
             exclude: ["antarctica"]
         }));
+
     }
 
     // Configurar países del continente
     countrySeries.set("include", continentCountries[continentId] || []);
     countrySeries.set("fill", color);
+    countrySeries.set("visible", true);
 
     // Configurar controles de navegación
     chart.setAll({
@@ -173,6 +195,12 @@ const goHome = () => {
         countrySeries = null;
     }
 
+    if (countrySeriesRanking) {
+        chart.series.removeValue(countrySeriesRanking);
+        countrySeriesRanking.dispose();
+        countrySeriesRanking = null;
+    }
+
     // Borrar puntos y ocultar pointSeries
     if (pointSeries) {
         pointSeries.setAll([]);
@@ -200,9 +228,277 @@ const goHome = () => {
 
 };
 
+// Variables para guardar referencias a polígonos activos
+let highlightedCountryPolygon = null;
+let countryPolygonsMap = new Map();
+let isShowingCountries = ref(false);
+let pendingCountryCode = null;
+let isCountrySeriesReady = false;
+
+let customTooltip = null;
+let catIdToCircleMap = new Map();
+
+function showCatTooltip(catId, catData) {
+    const circle = catIdToCircleMap.get(catId);
+    if (!circle) {
+        console.warn("Tooltip no encontrado para catId:", catId);
+        return;
+    }
+
+    // Crear el tooltip si no existe o actualizarlo
+    if (!circle.get("tooltip")) {
+        const tooltip = am5.Tooltip.new(root, {
+            pointerOrientation: "down",
+            getFillFromSprite: false,
+            labelHTML: getTooltipHTML(catData),
+            layer: 600,
+            pointerBaseWidth: 20,
+            pointerLength: 20,
+        });
+
+        tooltip.get("background").setAll({
+            fill: am5.color(0xffffff),
+            stroke: am5.color(0x000000),
+            strokeWidth: 1.5,
+            opacity: 0.95,
+            cornerRadius: 10,
+        });
+
+        circle.set("tooltip", tooltip);
+    } else {
+        // Actualizar contenido si ya existía
+        circle.get("tooltip").set("labelHTML", getTooltipHTML(catData));
+    }
+
+    circle.showTooltip();
+}
+
+function createCountryTooltip(code, catData) {
+    console.log("createCountryTooltip called with:", code, catData);
+
+    if (!chart || !catData || typeof code !== 'string') {
+        console.warn("Parámetros inválidos para createCountryTooltip:", { code, catData });
+        return;
+    }
+
+    const polygon = countryPolygonsMap.get(code.toUpperCase());
+    if (!polygon) return;
+
+
+
+    if (customTooltip && !customTooltip.isDisposed()) {
+        customTooltip.dispose();
+    }
+
+    customTooltip = am5.Tooltip.new(root, {
+        pointerOrientation: "down", // flecha abajo (puntero en la parte inferior del tooltip)
+        getFillFromSprite: false,
+        labelHTML: getTooltipHTML(catData), // Usamos HTML
+        layer: 600,
+        pointerBaseWidth: 20,
+        pointerLength: 20,
+
+    });
+
+    // Cambiar el fondo del tooltip (sin perder la flecha)
+    customTooltip.get("background").setAll({
+        fill: am5.color(0xffffff),
+        stroke: am5.color(0x000000),
+        strokeWidth: 1.5,
+        opacity: 0.9,
+        cornerRadius: 10,
+
+    });
+
+
+    polygon.setAll({
+        interactive: true,
+        tooltip: customTooltip,
+        tooltipText: " "
+    });
+
+    polygon.showTooltip();
+
+    const geoCentroid = polygon.geoCentroid();
+
+    chart.zoomToGeoPoint(
+        geoCentroid,
+        chart.get("zoomLevel") || 2.5,
+        true
+    );
+
+
+}
+
+
+const countryZoomSettings = {
+    US: { longitude: -105, latitude: 50, zoomLevel: 2.5 },
+    EG: { longitude: 30, latitude: 26, zoomLevel: 2.5 },
+    JP: { longitude: 138, latitude: 37, zoomLevel: 3 },
+    RU: { longitude: 107, latitude: 67, zoomLevel: 2.0 },
+    FR: { longitude: 2.2, latitude: 46.2, zoomLevel: 3 },
+    GB: { longitude: -1.5, latitude: 58, zoomLevel: 4 },
+    GR: { longitude: 22.9, latitude: 45.0, zoomLevel: 4 }
+};
+
+
+function highlightCountry(countryCode, podiumIndex = -1) {
+
+    highlightedCountryPolygon = countryPolygonsMap.get(countryCode);
+    if (highlightedCountryPolygon) {
+
+        highlightedCountryPolygon.set("fill", getColorForIndex(podiumIndex));
+    }
+}
+
+// Función para quitar resaltado país
+function clearCountryHighlight() {
+    if (highlightedCountryPolygon) {
+        // Eliminar la referencia al tooltip antes del dispose
+        highlightedCountryPolygon.set("tooltip", null);
+        highlightedCountryPolygon.set("tooltipText", null);
+        highlightedCountryPolygon.set("interactive", false);
+        highlightedCountryPolygon.set("fill", am5.color(0x53a785));
+        highlightedCountryPolygon = null;
+    }
+
+    // Dispose solo si existe y no fue eliminado
+    if (customTooltip && !customTooltip.isDisposed?.()) {
+        try {
+            customTooltip.dispose();
+        } catch (e) {
+            console.warn("Tooltip ya estaba eliminado:", e);
+        }
+        customTooltip = null;
+    }
+
+}
+
+
+function clearHighlightAndShowContinents() {
+    clearCountryHighlight();
+
+    if (countrySeriesRanking && isShowingCountries) {
+        countrySeriesRanking.hide();
+        series?.show();
+
+        chart.set("homeGeoPoint", { longitude: 12, latitude: 40 });
+        chart.set("homeZoomLevel", 1);
+        chart.set("homeRotationX", -12);
+        chart.set("rotationX", -12);
+
+        chart.goHome();
+        isShowingCountries = false;
+    }
+
+    if (customTooltip && !customTooltip.isDisposed?.()) {
+        try {
+            customTooltip.dispose();
+        } catch (e) {
+            console.warn("Tooltip ya estaba eliminado:", e);
+        }
+        customTooltip = null;
+    }
+}
+
+function hideCatTooltip(catId) {
+    const circle = catIdToCircleMap.get(catId);
+    if (circle) {
+        circle.hideTooltip();
+    } else {
+        console.warn("Tooltip no encontrado para catId:", catId);
+    }
+}
+
+
+
+// Esta es la función interna que hace el cambio de mapa y resalta 
+function highlightAndSwitch(code, catData) {
+    if (!countrySeriesRanking) return;
+
+    series.hide();             // oculta continentes
+    countrySeriesRanking.show();      // muestra países
+    isShowingCountries = true;
+
+    const settings = countryZoomSettings[code.toUpperCase()];
+    const polygon = countryPolygonsMap.get(code.toUpperCase());
+
+    if (settings && polygon) {
+        const podiumIndex = props.podiumCats?.findIndex(cat => cat.id === catData.id) ?? -1;
+        highlightCountry(code, podiumIndex);
+        createCountryTooltip(code, catData);
+
+        chart.zoomToGeoPoint(
+            { longitude: settings.longitude, latitude: settings.latitude },
+            settings.zoomLevel,
+            true
+        );
+
+
+    } else {
+        console.warn("No hay zoomSettings definidos para", code);
+    }
+
+}
+
+function highlightCountryOnHover({ code, cat }) {
+
+    pendingCountryCode = code;
+
+    if (countrySeries) {
+        countrySeries.set("visible", false);
+    }
+
+    if (!countrySeriesRanking) {
+
+        countrySeriesRanking = chart.series.push(am5map.MapPolygonSeries.new(root, {
+            geoJSON: am5geodata_worldLow,
+            exclude: ["AQ"]
+        }));
+
+        countrySeriesRanking.mapPolygons.template.setAll({
+            fill: am5.color(0x53a785),
+        });
+
+        countrySeriesRanking.set("visible", true);
+
+        countrySeriesRanking.events.once("datavalidated", () => {
+
+            countryPolygonsMap.clear();
+
+            countrySeriesRanking.mapPolygons.each((polygon) => {
+                const id = polygon.dataItem?.get("id");
+                if (id === "AQ") {
+                    polygon.hide();
+                    return;
+                }
+                countryPolygonsMap.set(id.toUpperCase(), polygon);
+            });
+
+            isCountrySeriesReady = true;
+
+            if (pendingCountryCode) {
+                highlightAndSwitch(pendingCountryCode, cat);
+            }
+        });
+    } else if (isCountrySeriesReady) {
+        highlightAndSwitch(code, cat);
+    }
+}
+
+
+
 
 // 2. Exponemos la función usando window (alternativa a defineExpose)
-window._mapAPI = { showContinentData, goHome };
+window._mapAPI = {
+    showContinentData,
+    goHome,
+    highlightCountry: highlightCountryOnHover,
+    clearCountryHighlight: clearHighlightAndShowContinents,
+    showCatTooltip,
+    hideCatTooltip,
+
+};
 
 
 async function fetchBreeds() {
@@ -336,15 +632,23 @@ const loadPoints = async () => {
 
 };
 
-const getTooltipHTML = (data) => {
-    if (!data) return '';
+function styleObjectToCSS(styleObj) {
+    return Object.entries(styleObj)
+        .map(([key, value]) => `${key.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}: ${value};`)
+        .join(' ');
+}
+
+const getTooltipHTML = (catData) => {
+    if (!catData) return "";
+    const styleObj = getCatStyle(catData, false, false, true);
+    const style = styleObjectToCSS(styleObj);
     return `
-          <div style="text-align:center;">
-            <strong>${data.name}</strong><br />
-            <img src="${data.image}" alt="${data.name}" width="100"/><br />
-            ${t('origen')}: ${data.countryName}
-          </div>
-        `;
+        <div style="text-align:center; color: black; font-family: 'Manrope', sans-serif;">
+          <strong>${catData.name}</strong><br/>
+          <img src="${catData.image}" alt="${catData.name}" style="width: 120px; height: 120px; border-radius: 6px; object-fit: cover; margin-top: 6px; margin-bottom: 2px; border: solid 2px black;  ${style}"/><br/>
+        ${catData.origin || catData.countryName}
+        </div>
+      `;
 };
 
 
@@ -362,10 +666,11 @@ onMounted(async () => {
     // Tema animado
     root.setThemes([am5themes_Animated.new(root)]);
 
+    projection = am5map.geoMercator();
     chart = root.container.children.push(
         am5map.MapChart.new(root, {
 
-            projection: am5map.geoMercator(),
+            projection: projection,
 
             homeZoomLevel: 1,
             homeGeoPoint: { latitude: 0, longitude: 0 },
@@ -441,7 +746,6 @@ onMounted(async () => {
     series.data.setAll(getTranslatedContinents.value);
 
 
-
     pointSeries = chart.series.push(am5map.MapPointSeries.new(root, {
         latitudeField: "latitude",
         longitudeField: "longitude",
@@ -486,12 +790,16 @@ onMounted(async () => {
             cursorOverStyle: "pointer",
             tooltipPosition: "pointer",
             pointerOrientation: "auto",
-
-
         });
 
 
         container.children.push(circle);
+
+        // Guardar el círculo para mostrar tooltip luego
+        if (dataContext?.id) {
+            catIdToCircleMap.set(dataContext.id, circle);
+        }
+
         // Label solo si está rankeado
         let label = null;
 
@@ -546,11 +854,21 @@ onMounted(async () => {
             animationEasing: am5.ease.out(am5.ease.cubic)
         });
 
+        // Poner borde negro y grosor
+        tooltip.get("background").setAll({
+            stroke: am5.color(0x000000),
+            strokeWidth: 1.5,
+            fill: am5.color(0xffffff), // si quieres también fondo blanco
+            opacity: 0.9,
+            cornerRadius: 10,
+        });
+
         circle.set("tooltip", tooltip);
 
         // Usamos un adaptador para que el contenido del tooltip sea dinámico según el dataItem y traducción
         circle.adapters.add("tooltipHTML", (html, target) => {
             const data = target.dataItem?.dataContext;
+            console.log("Tooltip data:", data);
             return getTooltipHTML(data);
         });
 
@@ -682,5 +1000,6 @@ watch(() => [props.podiumCats, circlesMap.size],
     width: 100%;
     height: 100%;
     color: #53a785;
+    overflow: visible;
 }
 </style>

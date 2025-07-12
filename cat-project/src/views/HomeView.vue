@@ -18,7 +18,7 @@
                     {{ continent.name }}
                     <span v-show="hoveredContinent === continent.id || activeContinent === continent.id"
                         class="count-badge float-end">
-                        {{ continentCounts[continent.id] ?? 'Cargando...' }} {{ (continentCounts[continent.id] === 1) ?
+                        {{ continentCounts[continent.id] ?? t('cargando') }} {{ (continentCounts[continent.id] === 1) ?
                             t('gato') : t('gatos') }}
                     </span>
                 </button>
@@ -55,7 +55,10 @@
 
                             <RankingList :title="selectedRanking.label" :cats="topCatsByRanking"
                                 :prop="selectedRanking.type" :isLifeSpan="isLifeSpan" :isWeight="isWeight"
-                                @update-podium="podiumCats = $event" />
+                                :hasContinentSelected="!!activeContinent" @update-podium="podiumCats = $event"
+                                @highlight-location="handleLocationHighlight" @clear-highlight="clearMapHighlight"
+                                @show-tooltip="handleShowTooltip" @hide-tooltip="handleHideTooltip" />
+
                             <button :style="{ display: showNoCatsMessage ? 'none' : 'inline-block' }"
                                 @click="startReturn" class="volver-boton">
                                 {{ t('volver') }}
@@ -79,12 +82,15 @@
 <script setup>
 import WorldMap from "@/components/WorldMap.vue";
 import CatCarrusel from "@/components/CatCarrusel.vue";
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useGetData } from '@/composables/getData';
 import continentCountries from '@/store/continentCountries';
 import RankingList from '@/components/RankingList.vue';
 import { useMissingImagesStore } from '@/store/missingImages';
-import { useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n';
+import { useGetTranslatedBreeds } from '@/composables/useSaveBreeds';
+import countryCoordinates from "@/store/countryCoordinates";
+
 
 
 // Ref para controlar el mapa desde el padre
@@ -92,7 +98,9 @@ const worldMapRef = ref(null);
 
 const missingImages = useMissingImagesStore();
 
-const { t } = useI18n()
+const { t, locale } = useI18n();
+const { getTranslatedBreeds } = useGetTranslatedBreeds();
+const translatedBreeds = ref([]);
 
 // Datos reactivos
 const cats = ref([]);
@@ -107,13 +115,9 @@ const continents = computed(() => [
 
 const activeContinent = ref(null);
 
-const deselectContinent = () => {
-    activeContinent.value = null;
-};
 
 const hoveredContinent = ref(null);
 const selectedRanking = ref(null);
-const rankingKey = ref(0);
 
 const selectionFromButton = ref(false);
 const continentCounts = ref({});
@@ -170,6 +174,14 @@ const getContinentFromCat = (cat) => {
 
 onMounted(async () => {
     try {
+        // Si el idioma es español, carga traducciones primero
+        if (locale.value === 'es') {
+            const result = await getTranslatedBreeds();
+            if (Array.isArray(result)) {
+                translatedBreeds.value = result;
+            }
+        }
+
         await getData('https://api.thecatapi.com/v1/breeds');
 
 
@@ -262,6 +274,7 @@ const calculateContinentCounts = (catsArray = cats.value) => {
 
 // filtrar y ordenar top 3 según ranking seleccionado
 const topCatsByRanking = computed(() => {
+
     if (!selectedRanking.value || !data.value) return [];
 
 
@@ -305,11 +318,20 @@ const topCatsByRanking = computed(() => {
                 ? cat.weight?.metric
                 : cat[type];
 
+        const translated = translatedBreeds.value.find(b => b.id === cat.id);
+
+        const countryName = translated?.origin || cat.origin;
+        const coords = countryCoordinates[cat.country_code] || { latitude: null, longitude: null };
+
         return {
             id: cat.id,
             name: cat.name,
             score: score,
             image: imageUrl,
+            origin: countryName,
+            country_code: cat.country_code,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
 
         };
     });
@@ -365,7 +387,7 @@ const startReturn = () => {
 
     // Esperamos que la animación dure 400ms antes de resetear
     setTimeout(() => {
-        selectedRanking.value = null; 
+        selectedRanking.value = null;
         isReturning.value = false;
     }, 400);
 };
@@ -379,6 +401,43 @@ const showNoCatsMessage = computed(() => {
     return activeContinent.value === 'southAmerica' || currentContinentCount.value === 0;
 });
 
+const handleLocationHighlight = (countryCode) => {
+    window._mapAPI?.highlightCountry(countryCode);
+
+};
+
+const clearMapHighlight = () => {
+    window._mapAPI?.clearCountryHighlight();
+};
+
+const handleShowTooltip = (catId, cat) => {
+    console.log('CatId:', catId, 'Cat:', cat);
+    window._mapAPI?.showCatTooltip(catId, cat);
+};
+
+const handleHideTooltip = (catId) => {
+    window._mapAPI?.hideCatTooltip(catId);
+}
+
+
+
+
+
+
+watch(locale, async () => {
+    if (locale.value === 'es') {
+        const data = await getTranslatedBreeds();
+        if (Array.isArray(data)) {
+            translatedBreeds.value = data;
+        }
+    } else {
+        await getData('https://api.thecatapi.com/v1/breeds');
+        if (Array.isArray(data.value)) {
+            translatedBreeds.value = data.value;
+        }
+
+    }
+}, { immediate: true });
 
 
 
@@ -576,7 +635,8 @@ button:hover {
 #cats-list {
 
     background: rgba(255, 255, 255, 0.1);
-    padding: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
     border-radius: 10px;
     color: white;
 }
@@ -617,6 +677,7 @@ button:hover {
     color: #ffffff;
     padding: 10px;
     margin-bottom: 10px;
+
     transition: background-color 0.4s ease;
 }
 
@@ -679,15 +740,16 @@ button:hover {
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 10;
-    padding: 4px;
+    z-index: 5;
+    padding-left: 20px;
+    padding-right: 20px;
 }
 
 
 /* Cada slide ocupa mitad */
 .ranking-slide {
     width: 50%;
-    padding: 5px 10px;
+    padding: 5px 20px;
     gap: 1px;
     box-sizing: border-box;
 }

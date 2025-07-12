@@ -32,7 +32,7 @@ const fixedPoints = {
     GB: [
         { latitude: 51.5074, longitude: -0.1278 }, // Londres
         { latitude: 53.4808, longitude: -2.2426 }, // Manchester      
-        { latitude: 52.4862, longitude: -1.8904 }, // Birmingham
+        { latitude: 52.9862, longitude: -0.1704 }, // Birmingham
         { latitude: 51.4545, longitude: -2.5879 }, // Bristol
         { latitude: 57.1497, longitude: -2.0943 }, // Aberdeen
         { latitude: 50.7184, longitude: -3.5339 }, // Exeter

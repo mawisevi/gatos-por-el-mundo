@@ -7,10 +7,11 @@ const props = defineProps({
   cats: Array,
   prop: String,
   isLifeSpan: Boolean,
-  isWeight: Boolean
+  isWeight: Boolean,
+  hasContinentSelected: Boolean,
 });
 
-const emit = defineEmits(['update-podium']);
+const emit = defineEmits(['update-podium', 'highlight-location', 'clear-highlight', 'show-tooltip', 'hide-tooltip']);
 
 const shouldAnimate = ref(false);
 
@@ -45,7 +46,10 @@ watch(() => props.cats, (newCats) => {
     <h3>{{ title }}</h3>
 
     <Podium :cats="isSingleBreed ? cats.slice(0, 1) : cats.slice(0, 3)" :ratingType="prop" :animate="shouldAnimate"
-      :is-single-breed="isSingleBreed" />
+      :is-single-breed="isSingleBreed" :hasContinentSelected="hasContinentSelected"
+      @highlight-location="$emit('highlight-location', $event)" @clear-highlight="$emit('clear-highlight')"
+      @show-tooltip="(catId, cat) => $emit('show-tooltip', catId, cat)"
+      @hide-tooltip="(code, cat) => $emit('hide-tooltip', code, cat)" />
 
   </section>
 </template>

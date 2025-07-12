@@ -97,6 +97,7 @@ const messages = {
     perfil: 'Perfil de Usuario',
     nombrePerfil: 'Nombre:',
     correoPerfil: 'Correo:',
+    cargando: 'Cargando...',
   },
   en: {
     gatosporelmundo: 'Cats around the World',
@@ -193,6 +194,7 @@ const messages = {
     perfil: 'User Profile',
     nombrePerfil: 'Name:',
     correoPerfil: 'Email:',
+    cargando: 'Loading...',
   }
 }
 

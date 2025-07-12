@@ -119,24 +119,68 @@ export const useFixedFacesStore = defineStore('fixedFaces', {
       csho: { zoom: 1.0, x: '0px', y: '-3px' },
       bsho: { zoom: 1.0, x: '0px', y: '0px' },
       
-    }
+    },
+
+    tooltipAsjustaments: {
+      abob: { zoom: 1.0, x: '-60px', y: '0px' },
+      bali: { zoom: 1.0, x: '-20px', y: '0px' },
+      bamb: { zoom: 1.0, x: '-30px', y: '0px' },
+      sava: { zoom: 1.0, x: '0px', y: '-15px' },
+      bomb: { zoom: 1.0, x: '-65px', y: '0px' },
+      birm: { zoom: 1.0, x: '-30px', y: '0px' },
+      drex: { zoom: 1.0, x: '-40px', y: '0px' },
+      manx: { zoom: 1.0, x: '-20px', y: '0px' },
+      bsho: { zoom: 1.0, x: '-5px', y: '0px' },
+      crex: { zoom: 1.0, x: '-50px', y: '0px' },
+      char: { zoom: 1.0, x: '0px', y: '-15px' },
+      cypr: { zoom: 1.0, x: '-15px', y: '0px' },
+      rblu: { zoom: 1.0, x: '-20px', y: '0px' },
+      tang: { zoom: 1.0, x: '0px', y: '-15px' },
+      pers: { zoom: 1.0, x: '-55px', y: '0px' },
+      amau: { zoom: 1.0, x: '-15px', y: '0px' },
+      ebur: { zoom: 1.0, x: '-20px', y: '0px' },
+      bure: { zoom: 1.0, x: '-10px', y: '0px' },
+      kora: { zoom: 1.0, x: '-30px', y: '0px' },
+      siam: { zoom: 1.0, x: '-40px', y: '0px' },
+      lape: { zoom: 1.0, x: '-10px', y: '0px' },
+      sing: { zoom: 1.0, x: '0px', y: '-25px' },
+      jbob: { zoom: 1.0, x: '-30px', y: '0px' },
+      chau: { zoom: 1.0, x: '-23px', y: '0px' },
+      soma: { zoom: 1.0, x: '0px', y: '-5px' },
+      cymr: { zoom: 1.0, x: '-60px', y: '0px' },
+      sphy: { zoom: 1.0, x: '-20px', y: '0px' },
+      beng: { zoom: 1.0, x: '-5px', y: '0px' },
+      nebe: { zoom: 1.0, x: '-10px', y: '0px' },
+      asho: { zoom: 1.0, x: '-30px', y: '0px' },
+      munc: { zoom: 1.0, x: '-20px', y: '0px' },
+      snow: { zoom: 1.0, x: '-35px', y: '0px' },
+      hima: { zoom: 1.0, x: '-20px', y: '0px' },
+      srex: { zoom: 1.0, x: '-73px', y: '0px' },
+      ocic: { zoom: 1.0, x: '-40px', y: '0px' },
+      cspa: { zoom: 1.0, x: '-77px', y: '0px' },
+    } 
   }),
   actions: {
-    getSettings(breedId, isOtherDimension = false, isCatView = false) {
+    getSettings(breedId, isOtherDimension = false, isCatView = false, isTooltip = false) {
      
       if (isCatView) {
         return this.catViewAdjustments[breedId] ||  { zoom: 1, x: 'center', y: 'center' };
       }
       if (isOtherDimension) {
-        return this.otherDimension[breedId] || this.faceSettings[breedId] || { zoom: 1, x: '0px', y: '0px' };
+        return this.otherDimension[breedId] || { zoom: 1, x: '0px', y: '0px' };
+      }
+      if (isTooltip) {
+        return this.tooltipAsjustaments[breedId] || { zoom: 1, x: '0px', y: '0px' };
       }
       return this.faceSettings[breedId] || { zoom: 1, x: '0px', y: '0px' };
     },
-    updateSettings(breedId, newSettings, isOtherDimension = false, isCatView = false) {
+    updateSettings(breedId, newSettings, isOtherDimension = false, isCatView = false, isTooltip = false) {
       if (isOtherDimension) {
         this.otherDimension[breedId] = newSettings;
       } else if (isCatView){
         this.catViewAdjustments[breedId] = newSettings;
+      } else if (isTooltip){
+        this.tooltipAsjustaments[breedId] = newSettings;
       } else {
         this.faceSettings[breedId] = newSettings;
       }
