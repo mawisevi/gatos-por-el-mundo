@@ -5,7 +5,9 @@ import { useAuthStore } from '@/store/auth';
 import Footer from '@/components/Footer.vue';
 import { useToast } from 'vue-toastification';
 import 'vue-toastification/dist/index.css';
-import { useI18n } from 'vue-i18n'
+import { useI18n } from 'vue-i18n';
+import { onMounted, computed } from 'vue';
+import defaultCat from '@/assets/avatars/defaultCat.png'
 
 // Lo comentado es para volver a regenerar el archivo breeds-es.json una vez eliminado
 
@@ -50,99 +52,131 @@ const { t, locale } = useI18n()
 function cambiarIdioma() {
   locale.value = locale.value === 'es' ? 'en' : 'es'
   localStorage.setItem('idioma', locale.value)
-  
+
 }
+
+onMounted(() => {
+  auth.loadFromStorage(); 
+  auth.loadCustomAvatar()
+})
+
+const navbarAvatar = computed(() => {
+  if (auth.user?.avatar) {
+    return auth.user.avatar // Avatar de Google
+  }
+
+  if (auth.customAvatar && auth.customAvatar !== defaultCat) {
+    return auth.customAvatar // Avatar personalizado
+  }
+
+  return null; // Mostrar icono por defecto
+})
 
 </script>
 
 <template>
 
-<div class="page-wrapper">
-  <!-- Navbar -->
-  <nav v-if="!route.meta.hideNavbar" class="navbar">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
-      <router-link class="navbar-brand text-white" to="/">
-        <img alt="Vue logo" src="@/assets/refugio-de-animales.png" width="30" height="24"
-          class="d-inline-block align-text-top" />
+  <div class="page-wrapper">
+    <!-- Navbar -->
+    <nav v-if="!route.meta.hideNavbar" class="navbar">
+      <div class="container-fluid d-flex justify-content-between align-items-center">
+        <router-link class="navbar-brand text-white" to="/">
+          <img alt="Vue logo" src="@/assets/refugio-de-animales.png" width="30" height="24"
+            class="d-inline-block align-text-top" />
 
-        {{ $t('gatosporelmundo') }}
+          {{ $t('gatosporelmundo') }}
 
-      </router-link>
-      <div v-if="auth.isLoggedIn" class="d-flex align-items-center justify-content-center">
-
-        <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
-           v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
-
-          <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" style="margin-top: 1px;" class="icon-default" />
-          <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" style="margin-top: 1px;"  />
-        </button>
-
-        <router-link active-class="active" class="icon-container" v-tooltip="t('home')" style="cursor:pointer;" to="/">
-          <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
-          <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
         </router-link>
+        <div v-if="auth.isLoggedIn" class="d-flex align-items-center justify-content-center">
 
-        <router-link active-class="active" class="icon-container" v-tooltip="t('razas')" style="cursor:pointer; text-decoration: none;" to="/gatos">
-          <!-- Icono normal (visible por defecto) -->
-          <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
+          <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
+            v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
 
-          <!-- Icono activo (oculto por defecto) -->
-          <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
-        </router-link>
+            <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" style="margin-top: 1px;"
+              class="icon-default" />
+            <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" style="margin-top: 1px;" />
+          </button>
 
-        <router-link active-class="active" class="icon-container"  v-tooltip="t('favoritos')" style="cursor:pointer;" to="/favoritos">
-          <i class="bi bi-heart icon-hover fs-3 icon-default" style="margin-top: 3px;"></i>
-          <i class="bi bi-heart-fill icon-hover fs-3 icon-active"></i>
-        </router-link>
+          <router-link active-class="active" class="icon-container" v-tooltip="t('home')" style="cursor:pointer;"
+            to="/">
+            <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
+            <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
+          </router-link>
 
-        <router-link active-class="active" class="icon-container"  v-tooltip="t('perfil')" style="cursor:pointer;" to="/perfil">
-          <i class="bi bi-person icon-hover fs-3 icon-default" style="margin-top: 0px;"></i>
-          <i class="bi bi-person-fill icon-hover fs-3 icon-active"></i>
-        </router-link>
+          <router-link active-class="active" class="icon-container" v-tooltip="t('razas')"
+            style="cursor:pointer; text-decoration: none;" to="/gatos">
+            <!-- Icono normal (visible por defecto) -->
+            <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
+
+            <!-- Icono activo (oculto por defecto) -->
+            <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
+          </router-link>
+
+          <router-link active-class="active" class="icon-container" v-tooltip="t('favoritos')" style="cursor:pointer;"
+            to="/favoritos">
+            <i class="bi bi-heart icon-hover fs-3 icon-default" style="margin-top: 3px;"></i>
+            <i class="bi bi-heart-fill icon-hover fs-3 icon-active"></i>
+          </router-link>
+
+          <router-link active-class="active" class="icon-container" v-tooltip="t('perfil')" style="cursor:pointer;"
+            to="/perfil">
+            <template v-if="navbarAvatar">
+              <img :src="navbarAvatar" alt="avatar" class="navbar-avatar-img" style="margin-top: 3px;"/>
+            </template>
+            <template v-else>
+              <i class="bi bi-person icon-hover fs-2 icon-default" style="margin-top: 2px;"></i>
+              <i class="bi bi-person-fill icon-hover fs-2 icon-active"  style="margin-top: 2px;"></i>
+            </template>
+          </router-link>
 
 
-        <button @click="logout" class="btn btn-link p-0 border-0 icon-container custom-btn"  v-tooltip="t('cerrarsesion')" style="cursor:pointer;">
-          <i class="bi bi-box-arrow-right fs-2 icon-hover"></i>
-        </button>
+          <button @click="logout" class="btn btn-link p-0 border-0 icon-container custom-btn"
+            v-tooltip="t('cerrarsesion')" style="cursor:pointer; margin-top: 3px;">
+            <i class="bi bi-box-arrow-right fs-2 icon-hover"></i>
+          </button>
 
+        </div>
+
+        <div v-else class="d-flex align-items-center justify-content-center">
+          <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
+            v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
+
+            <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" style="margin-top: 1px;"
+              class="icon-default" />
+            <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" style="margin-top: 1px;" />
+          </button>
+
+          <router-link active-class="active" class="icon-container" v-tooltip="t('home')" style="cursor:pointer;"
+            to="/">
+            <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
+            <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
+          </router-link>
+
+          <router-link active-class="active" class="icon-container" v-tooltip="t('razas')"
+            style="cursor:pointer; text-decoration: none;" to="/gatos">
+            <!-- Icono normal (visible por defecto) -->
+            <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
+
+            <!-- Icono activo (oculto por defecto) -->
+            <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
+          </router-link>
+          <router-link active-class="active" class="icon-container" v-tooltip="t('iniciarsesion')"
+            style="cursor:pointer;" to="/login">
+            <i class="bi bi-door-open fs-3 icon-hover"></i>
+          </router-link>
+        </div>
       </div>
-
-      <div v-else class="d-flex align-items-center justify-content-center">
-        <button @click="cambiarIdioma" class="btn btn-link p-0 border-0 icon-container custom-btn"
-           v-tooltip="t('cambiarIdioma')" style="cursor:pointer;">
-
-          <img v-if="locale === 'es'" alt="ES" src="@/assets/es-nuevo.png" width="50" style="margin-top: 1px;" class="icon-default" />
-          <img v-else alt="EN" src="@/assets/en-nuevo.png" width="50" style="margin-top: 1px;"  />
-        </button>
-
-        <router-link active-class="active" class="icon-container"  v-tooltip="t('home')" style="cursor:pointer;" to="/">
-          <i class="bi bi-house icon-hover fs-2 icon-default" style="margin-top: 1px;"></i>
-          <i class="bi bi-house-fill icon-hover fs-2 icon-active"></i>
-        </router-link>
-
-        <router-link active-class="active" class="icon-container"  v-tooltip="t('razas')" style="cursor:pointer; text-decoration: none;" to="/gatos">
-          <!-- Icono normal (visible por defecto) -->
-          <i class="fi fi-rr-cat-head fs-3 icon-default" style="margin-top: 8px;"></i>
-
-          <!-- Icono activo (oculto por defecto) -->
-          <i class="fi fi-sr-cat-head fs-3 icon-active" style="margin-top: 10px;"></i>
-        </router-link>
-        <router-link active-class="active" class="icon-container"  v-tooltip="t('iniciarsesion')" style="cursor:pointer;" to="/login">
-          <i class="bi bi-door-open fs-3 icon-hover"></i>
-        </router-link>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
 
-  <!-- Contenido principal -->
-  <main :class="route.meta.fullPage ? '' : 'container'">
-    <RouterView :key="route.fullPath" />
-  </main>
+    <!-- Contenido principal -->
+    <main :class="route.meta.fullPage ? '' : 'container'">
+      <RouterView :key="route.fullPath" />
+    </main>
 
-  <Footer v-if="!route.meta.hideFooter"></Footer>
+    <Footer v-if="!route.meta.hideFooter"></Footer>
 
-</div>
+  </div>
 </template>
 
 <style scope>
@@ -162,7 +196,8 @@ body {
 .page-wrapper {
   display: flex;
   flex-direction: column;
-  min-height: 100vh; /* Ocupa al menos toda la altura de la ventana */
+  min-height: 100vh;
+  /* Ocupa al menos toda la altura de la ventana */
 }
 
 
@@ -171,7 +206,8 @@ body {
 }
 
 main {
-  flex: 1; /* Hace que el contenido principal ocupe todo el espacio disponible */
+  flex: 1;
+  /* Hace que el contenido principal ocupe todo el espacio disponible */
 }
 
 a {
@@ -182,7 +218,8 @@ a {
 
 
 main {
-  flex: 1; /* Esto empuja el footer al fondo */
+  flex: 1;
+  /* Esto empuja el footer al fondo */
 }
 
 .custom-btn {
@@ -254,4 +291,13 @@ main {
 .custom-toast-body {
   font-family: inherit;
 }
+
+.navbar-avatar-img {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  border: 2px solid white;
+  object-fit: cover;
+}
+
 </style>

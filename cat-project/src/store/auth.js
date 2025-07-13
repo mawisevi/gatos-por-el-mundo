@@ -1,14 +1,16 @@
 
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { api } from '@/axios';
 import { useFavoritoStore } from './favoritos';
+import defaultCat from '../assets/avatars/defaultCat.png';
 
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref(null);
     const token = ref(localStorage.getItem('auth_token'));
     const isLoggedIn = ref(false);
+    const customAvatar = ref(localStorage.getItem('customAvatar'));
 
 
     function setUser(userData) {
@@ -22,14 +24,6 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.setItem('auth_token', newToken);
         api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     }
-
-    // function loadFromStorage() {
-    //     const stored = localStorage.getItem('user');
-    //     if (stored) {
-    //         user.value = JSON.parse(stored);
-    //         isLoggedIn.value = true;
-    //     }
-    // }
 
     function loadFromStorage() {
         const token = localStorage.getItem('auth_token');
@@ -51,11 +45,48 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    function setCustomAvatar(url) {
+        if (user.value?.id) {
+            const key = `customAvatar_${user.value.id}`;
+            localStorage.setItem(key, url);
+            customAvatar.value = url;
+        }
+    }
+
+    function clearCustomAvatar() {
+        customAvatar.value = null;
+        localStorage.removeItem('customAvatar');
+    }
+
+    function loadCustomAvatar() {
+        if (user.value?.id) {
+            const key = `customAvatar_${user.value.id}`;
+            const stored = localStorage.getItem(key);
+            customAvatar.value = stored || defaultCat;
+        }
+    }
+
+    // WATCHER para actualizar customAvatar cuando cambia el usuario
+    watch(user, (newUser) => {
+        if (newUser?.id) {
+            customAvatar.value = getCustomAvatar(newUser.id);
+        } else {
+            customAvatar.value = null;
+        }
+    }, { immediate: true });
+
+    function saveCustomAvatar(userId, avatar) {
+        localStorage.setItem(`customAvatar_${userId}`, avatar);
+    }
+
+    function getCustomAvatar(userId) {
+        return localStorage.getItem(`customAvatar_${userId}`) || defaultCat;
+    }
+
 
     async function login(email, password) {
 
         await api.get('/sanctum/csrf-cookie');
-        await api.post('/api/login', { email, password });
 
         const loginResponse = await api.post('/api/login', { email, password });
 
@@ -67,6 +98,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         const userResponse = await api.get('/api/user');
         setUser(userResponse.data);
+        customAvatar.value = localStorage.getItem(`customAvatar_${userResponse.data.id}`) || defaultCat;
 
         const favoritoStore = useFavoritoStore();
         favoritoStore.loadFromStorage();
@@ -119,6 +151,8 @@ export const useAuthStore = defineStore('auth', () => {
             favoritoStore.clear();
             user.value = null;
             isLoggedIn.value = false;
+            localStorage.removeItem('customAvatar');
+            customAvatar.value = null;
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user');
 
@@ -131,6 +165,7 @@ export const useAuthStore = defineStore('auth', () => {
         user,
         token,
         isLoggedIn,
+        customAvatar,
         setUser,
         setToken,
         fetchUser,
@@ -138,5 +173,10 @@ export const useAuthStore = defineStore('auth', () => {
         login,
         logout,
         loadFromStorage,
+        setCustomAvatar,
+        clearCustomAvatar,
+        loadCustomAvatar,
+        saveCustomAvatar,
+        getCustomAvatar
     };
 });

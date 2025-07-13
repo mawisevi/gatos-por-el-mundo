@@ -98,6 +98,10 @@ const messages = {
     nombrePerfil: 'Nombre:',
     correoPerfil: 'Correo:',
     cargando: 'Cargando...',
+    seleccionarFoto: 'Selecciona una foto de perfil',
+    cambiarFoto: 'Cambiar foto de perfil',
+    cerrar: 'Cerrar',
+    guardarCambios: 'Guardar',
   },
   en: {
     gatosporelmundo: 'Cats around the World',
@@ -195,6 +199,10 @@ const messages = {
     nombrePerfil: 'Name:',
     correoPerfil: 'Email:',
     cargando: 'Loading...',
+    seleccionarFoto: 'Select a profile image',
+    cambiarFoto: 'Change profile image',
+    cerrar: 'Close',
+    guardarCambios: 'Save',
   }
 }
 

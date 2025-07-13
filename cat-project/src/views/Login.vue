@@ -319,7 +319,13 @@ async function handleLogin() {
     transition: background-color 0.4s ease;
 }
 
-#login-form button:hover {
+#login-form button:not(:disabled):hover {
     background-color: #e548a9;
+}
+
+
+#login-form button:disabled {
+  background-color: #8c73a1;
+  cursor: auto;
 }
 </style>
